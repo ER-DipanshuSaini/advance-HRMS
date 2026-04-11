@@ -266,7 +266,7 @@
 
 .pageContainer {
   flex: 1;
-  padding: 1.5rem;
+  padding: 1rem;
   overflow-y: auto;
   background-color: #f8fafc;
   display: flex;
@@ -291,6 +291,7 @@
   padding: 0.25rem;
   border-radius: 4px;
 }
+
 .mobileMenuBtn:active {
   background-color: #f1f5f9;
 }
@@ -304,6 +305,7 @@
   padding: 0.25rem;
   border-radius: 4px;
 }
+
 .closeMobileBtn:active {
   background-color: rgba(255, 255, 255, 0.05);
 }
@@ -317,7 +319,7 @@
     transform: translateX(-100%);
     width: 260px !important;
   }
-  
+
   .sidebarMobileOpen {
     transform: translateX(0) !important;
   }
@@ -325,7 +327,7 @@
   .collapseBtn {
     display: none;
   }
-  
+
   .closeMobileBtn {
     display: flex;
     align-items: center;
@@ -343,13 +345,13 @@
     backdrop-filter: blur(2px);
     z-index: 45;
   }
-  
+
   .mobileMenuBtn {
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  
+
   .topBar {
     padding: 0 1rem;
   }
@@ -363,6 +365,7 @@
   }
 
   .statusBadge {
-    display: none; /* remove for more space if needed */
+    display: none;
+    /* remove for more space if needed */
   }
 }
