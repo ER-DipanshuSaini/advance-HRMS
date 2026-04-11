@@ -1,0 +1,256 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drawer {
+  background: var(--bg-color);
+  width: 900px;
+  max-width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -20px 0 40px rgba(0, 0, 0, 0.15);
+}
+
+.header {
+  padding: var(--space-xl) var(--space-2xl);
+  background: var(--surface-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: var(--border-subtle);
+}
+
+.profileInfo {
+  display: flex;
+  gap: var(--space-lg);
+  align-items: center;
+}
+
+.avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--border-radius-full);
+  background: var(--primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  color: var(--primary);
+  border: var(--border-subtle);
+}
+
+.nameBlock h2 {
+  margin: 0 0 var(--space-2xs) 0;
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.titleLine {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.badgeStack {
+  margin-top: var(--space-sm);
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.matchBadge {
+  font-size: var(--text-tiny);
+  background: var(--success-light);
+  color: var(--success);
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  font-weight: 700;
+}
+
+.timeBadge {
+  font-size: var(--text-tiny);
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  font-weight: 600;
+}
+
+.closeBtn {
+  background: var(--bg-color);
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: var(--space-sm);
+  border-radius: var(--border-radius-full);
+  display: flex;
+  transition: var(--transition);
+}
+
+.closeBtn:hover {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 320px;
+  background: var(--surface-color);
+  border-right: var(--border-subtle);
+  padding: var(--space-xl) var(--space-2xl);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.mainView {
+  flex: 1;
+  padding: var(--space-xl) var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.infoGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.label {
+  font-size: var(--text-tiny);
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.value {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.linkValue {
+  composes: value;
+  color: var(--primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.linkValue:hover {
+  text-decoration: underline;
+}
+
+.skillsStack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.skillTag {
+  background: var(--bg-color);
+  border: var(--border-subtle);
+  color: var(--text-primary);
+  font-size: var(--text-tiny);
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  font-weight: 600;
+}
+
+.stageSelect {
+  width: 100%;
+  padding: var(--space-sm);
+  border-radius: var(--border-radius-md);
+  border: var(--border-subtle);
+  font-size: var(--text-sm);
+  background: var(--bg-color);
+  font-weight: 500;
+  color: var(--text-primary);
+  outline: none;
+  transition: var(--transition);
+}
+
+.stageSelect:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.pdfSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pdfTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.pdfIconBox {
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: var(--space-xs);
+  border-radius: var(--border-radius-md);
+}
+
+.pdfViewport {
+  flex: 1;
+  background: white;
+  border-radius: var(--border-radius-lg);
+  border: var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: var(--text-muted);
+  box-shadow: var(--shadow);
+}
+
+.pdfViewport p {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+}
+
+.actionBar {
+  background: var(--surface-color);
+  padding: var(--space-lg) var(--space-2xl);
+  border-top: var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+.currentStatusText {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.currentStatusValue {
+  color: var(--text-primary);
+}

@@ -1,0 +1,345 @@
+/* Page Header Refinement */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.75rem 2rem;
+  background: white;
+  border: 1px solid #eef2f6;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.03);
+  margin-bottom: 0.5rem;
+}
+
+.headerTitle {
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.25rem 0;
+}
+
+.headerDesc {
+  color: #64748b;
+  font-size: 0.875rem;
+  margin: 0;
+  max-width: 600px;
+  line-height: 1.5;
+}
+
+/* Modernized Stats Strip */
+.metricsStrip {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+.metricItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.metricIcon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.metricContent {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.metricLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.metricValue {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.metricDivider {
+  width: 1px;
+  height: 32px;
+  background: #f1f5f9;
+  margin: 0 2rem;
+}
+
+/* Main Container - Card Logic */
+.mainContainer {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Advanced Toolbar */
+.toolbar {
+  padding: 1rem 1.5rem;
+  background: #fafbfc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.searchContainer {
+  position: relative;
+  width: 280px;
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.mainSearch {
+  width: 100%;
+  padding: 0.6rem 1rem 0.6rem 2.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  transition: all 0.2s;
+}
+
+.mainSearch:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.08);
+  outline: none;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.tabBtn {
+  background: transparent;
+  border: none;
+  padding: 1rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tabBtn:hover { color: #0f172a; }
+
+.tabActive {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+.tabCount {
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+}
+
+.tabActive .tabCount {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+/* Table Responsive */
+.tableResponsive {
+  overflow-x: auto;
+}
+
+.saasTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.saasTable th {
+  padding: 1rem 1.5rem;
+  background: #f8fafc;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.saasTable td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f8fafc;
+  vertical-align: middle;
+  background: white;
+  font-size: 0.8125rem;
+  color: #334155;
+}
+
+.saasTable tr:hover td {
+  background: #fafbfc;
+}
+
+/* Specific Recruitment Cell Styles */
+.roleMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.roleHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.roleName {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 0.8125rem;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jobIdBadge {
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.65rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.roleDept {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.capacityLabel {
+  font-weight: 700;
+  color: #64748b;
+}
+
+.salaryLabel {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.locationStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.locMode {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.locCity {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* Pipeline Visualization Sync */
+.pipelineWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 140px;
+}
+
+.pipelineMetrics {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.pipelineBarSegmented {
+  height: 6px;
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.segmentApplied { background: #3b82f6; height: 100%; transition: width 0.3s; }
+.segmentScreening { background: #8b5cf6; height: 100%; transition: width 0.3s; }
+.segmentOffer { background: #10b981; height: 100%; transition: width 0.3s; }
+
+/* Empty States */
+.emptyState {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.emptyState h3 {
+  font-size: 1.1rem;
+  color: #334155;
+  margin-bottom: 0.5rem;
+}
+
+.emptyState p {
+  color: #94a3b8;
+  font-size: 0.8125rem;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

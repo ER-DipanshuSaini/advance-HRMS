@@ -1,0 +1,252 @@
+.profileHeader {
+  width: 100%;
+  background: white;
+  border-radius: 24px;
+  position: relative;
+  margin-bottom: 2.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 10px 40px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(241, 245, 249, 0.8);
+  display: flex;
+  flex-direction: column;
+}
+
+/* The Mesh Gradient Banner */
+.profileHeader::before {
+  content: '';
+  width: 100%;
+  height: 160px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1e293b 100%);
+  position: relative;
+  z-index: 1;
+}
+
+/* Subtle Mesh Glows */
+.profileHeader::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 160px;
+  background: radial-gradient(circle at 80% 20%, rgba(15, 98, 254, 0.15) 0%, transparent 50%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.bannerContent {
+  display: flex;
+  align-items: flex-end;
+  padding: 0 2.5rem 2.5rem;
+  gap: 2rem;
+  z-index: 10;
+  margin-top: -60px; /* Offset to nest avatar into the banner */
+}
+
+.avatarLarge {
+  width: 140px;
+  height: 140px;
+  background: #f8fafc;
+  border-radius: 50%;
+  border: 4px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  font-weight: 850;
+  color: #0f62fe;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  position: relative;
+  flex-shrink: 0;
+  overflow: visible; /* Allow upload button to overlap slightly if needed */
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.uploadTrigger {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: 38px;
+  height: 38px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 2px solid #f1f5f9;
+  transition: all 0.2s ease;
+  z-index: 5;
+}
+
+.uploadTrigger:hover {
+  transform: scale(1.1);
+  background: #f8fafc;
+  border-color: #0f62fe;
+}
+
+.uploadTrigger.uploading {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.headerInfo {
+  padding-bottom: 0.5rem;
+}
+
+.headerInfo h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 850;
+  color: #0f172a;
+  letter-spacing: -0.04em;
+  margin-bottom: 0.25rem;
+}
+
+.headerInfo p {
+  margin: 0;
+  color: #64748b;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.profileGrid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 2rem;
+}
+
+.infoCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.iconCircle {
+  width: 40px;
+  height: 40px;
+  background-color: #f1f5f9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.infoLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.125rem;
+}
+
+.infoValue {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.detailSection {
+  margin-top: 1.5rem;
+}
+
+.detailTitle {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.orgCard {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.modalGrid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.modalGrid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .profileGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .profileHeader::before {
+    height: 120px;
+  }
+  
+  .bannerContent {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 1.5rem 1.5rem;
+    gap: 1rem;
+    margin-top: -60px;
+  }
+  
+  .headerInfo {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .headerInfo h1 {
+    font-size: 1.75rem;
+  }
+  
+  .nameBadgeRow {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .avatarLarge {
+    width: 110px;
+    height: 110px;
+    border-width: 3px;
+  }
+
+  .uploadTrigger {
+    width: 32px;
+    height: 32px;
+  }
+
+  .orgCard,
+  .modalGrid2,
+  .modalGrid3 {
+    grid-template-columns: 1fr;
+  }
+}

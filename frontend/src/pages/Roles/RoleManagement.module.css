@@ -1,0 +1,165 @@
+.roleRow {
+  padding: 0.875rem 1.25rem;
+  cursor: pointer;
+  border-radius: 10px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease-in-out;
+  margin-bottom: 0.5rem;
+  border: 1px solid transparent;
+}
+
+.roleRow:hover {
+  background: white;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.activeRow {
+  background: white !important;
+  border-color: #bfdbfe !important;
+  box-shadow: 0 4px 15px rgba(15, 98, 254, 0.1) !important;
+}
+
+.moduleTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.permissionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.permCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: white;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.permCard:hover {
+  border-color: var(--primary-light);
+  background: #f8fafc;
+}
+
+.permActive {
+  border-color: var(--primary);
+  background: rgba(15, 98, 254, 0.02);
+}
+
+.permLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  flex: 1;
+}
+
+.permLabel input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.permName {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.infoWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: help;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.infoWrapper:hover {
+  color: var(--primary);
+  background: rgba(15, 98, 254, 0.05);
+}
+
+/* Layout & Responsiveness */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.75rem 2rem;
+  background: white;
+  border: 1px solid #eef2f6;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px -5px rgba(0,0,0,0.03);
+  margin-bottom: 0.5rem;
+}
+
+.headerTitle {
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.25rem 0;
+}
+
+.headerDesc {
+  color: #64748b;
+  font-size: 0.875rem;
+  margin: 0;
+  max-width: 600px;
+  line-height: 1.5;
+}
+
+.workspaceGrid {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) 2fr;
+  gap: 2rem;
+}
+
+@media (max-width: 1200px) {
+  .permissionGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .workspaceGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .permissionGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .pageHeader {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1.5rem;
+  }
+  
+  .headerTitle {
+    font-size: 1.25rem;
+  }
+}
