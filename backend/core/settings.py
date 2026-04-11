@@ -1,16 +1,22 @@
 import os
+import environ
 from pathlib import Path
 from datetime import timedelta
-from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables
-load_dotenv(BASE_DIR / '.env')
+# Initialize environment variables
+env = environ.Env(
+    DEBUG=(bool, True),
+    DATABASE_URL=(str, f"sqlite:///{BASE_DIR}/hireflow_dev.sqlite3"),
+)
 
-SECRET_KEY = 'django-insecure-z=t_v($c12j8gq(k-p=y$d8p)v&x*$=!y+^u$@^l=_q*1r4r-v'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+# Load .env file
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
+SECRET_KEY = env('SECRET_KEY', default='django-insecure-z=t_v($c12j8gq(k-p=y$d8p)v&x*$=!y+^u$@^l=_q*1r4r-v')
+DEBUG = env('DEBUG')
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -26,11 +32,11 @@ INSTALLED_APPS = [
     'corsheaders',
     
     # Custom Modular Apps
+    'modules.communication_hub.apps.CommunicationHubConfig',
     'modules.roles.apps.RolesConfig',
     'modules.organizations.apps.OrganizationsConfig',
     'modules.users.apps.UsersConfig',
     'modules.attendance.apps.AttendanceConfig',
-    'modules.communication_hub.apps.CommunicationHubConfig',
 ]
 
 MIDDLEWARE = [
@@ -66,10 +72,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'hireflow_dev.sqlite3',
-    }
+    'default': env.db(),
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -102,6 +105,13 @@ SIMPLE_JWT = {
 }
 
 # Media files setup
-MEDIA_URL = os.environ.get('MEDIA_URL', '/media/')
-# Use the value from .env or default to 'media' in BASE_DIR
-MEDIA_ROOT = os.path.join(BASE_DIR, os.environ.get('MEDIA_ROOT', 'media'))
+MEDIA_URL = env('MEDIA_URL', default='/media/')
+MEDIA_ROOT = os.path.join(BASE_DIR, env('MEDIA_ROOT', default='media'))
+
+# Celery Configuration
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE

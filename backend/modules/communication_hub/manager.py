@@ -69,24 +69,42 @@ class MailManager:
                         # Decode From
                         from_header = msg.get("From")
                         
-                        # Body Extraction
+                        # Body & Attachment Extraction
                         body_html = ""
                         body_text = ""
+                        attachments = []
+                        
                         if msg.is_multipart():
                             for part in msg.walk():
                                 content_type = part.get_content_type()
                                 content_disposition = str(part.get("Content-Disposition"))
-                                try:
-                                    payload = part.get_payload(decode=True)
-                                    if payload:
-                                        payload = payload.decode(errors='ignore')
-                                except:
-                                    continue
-
-                                if content_type == "text/plain" and "attachment" not in content_disposition:
-                                    body_text += payload
-                                elif content_type == "text/html" and "attachment" not in content_disposition:
-                                    body_html += payload
+                                filename = part.get_filename()
+                                
+                                if filename:
+                                    # This is an attachment
+                                    try:
+                                        payload = part.get_payload(decode=True)
+                                        if payload:
+                                            attachments.append({
+                                                'filename': filename,
+                                                'content_type': content_type,
+                                                'content': payload,
+                                                'size': len(payload)
+                                            })
+                                    except:
+                                        continue
+                                else:
+                                    # Regular body part
+                                    try:
+                                        payload = part.get_payload(decode=True)
+                                        if payload:
+                                            payload = payload.decode(errors='ignore')
+                                            if content_type == "text/plain":
+                                                body_text += payload
+                                            elif content_type == "text/html":
+                                                body_html += payload
+                                    except:
+                                        continue
                         else:
                             content_type = msg.get_content_type()
                             payload = msg.get_payload(decode=True).decode(errors='ignore')
@@ -110,6 +128,7 @@ class MailManager:
                             'body_text': body_text,
                             'body_html': body_html or body_text,
                             'received_at': date_parsed,
+                            'attachments': attachments,
                         })
 
             imap.logout()
@@ -119,13 +138,15 @@ class MailManager:
             return []
 
     @staticmethod
-    def send_email(account, to_email, subject, body, cc=None, bcc=None):
+    def send_email(account, to_email, subject, body, cc=None, bcc=None, attachments=None):
         """
-        Sends an email via SMTP.
+        Sends an email via SMTP with optional attachments.
         """
         try:
             from email.mime.text import MIMEText
             from email.mime.multipart import MIMEMultipart
+            from email.mime.base import MIMEBase
+            from email import encoders
 
             msg = MIMEMultipart()
             msg['From'] = account.email_address
@@ -134,6 +155,20 @@ class MailManager:
             msg['Subject'] = subject
 
             msg.attach(MIMEText(body, 'html'))
+
+            # Handle Attachments
+            if attachments:
+                for f in attachments:
+                    # f is expected to be a file-like object or a Django UploadedFile record
+                    part = MIMEBase('application', 'octet-stream')
+                    try:
+                        # If it's a Django file object, it might have .read() and .name
+                        part.set_payload(f.read())
+                        encoders.encode_base64(part)
+                        part.add_header('Content-Disposition', f'attachment; filename="{f.name}"')
+                        msg.attach(part)
+                    except Exception as fe:
+                        print(f"Error attaching file: {fe}")
 
             recipients = [to_email]
             if cc: recipients.append(cc)
