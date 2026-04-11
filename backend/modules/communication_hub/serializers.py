@@ -12,7 +12,7 @@ class MailMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = MailMessage
         fields = [
-            'id', 'uid', 'subject', 'sender', 'recipient', 
+            'id', 'account', 'uid', 'subject', 'sender', 'recipient', 
             'cc', 'bcc', 'body_text', 'body_html', 
             'is_read', 'is_starred', 'folder', 'received_at',
             'attachments'

@@ -10,7 +10,7 @@ import {
   UserCircle, Building2, ShieldCheck,
   ExternalLink, Image as ImageIcon, Strikethrough,
   RotateCcw, RotateCw, MinusSquare, Maximize2, CheckCircle2,
-  Database, Cpu, Zap, Server, UserCheck
+  Database, Cpu, Zap, Server, UserCheck, Loader2
 } from 'lucide-react';
 import { apiClient } from '../../api/apiClient';
 import Button from '../../components/common/Button/Button';
@@ -19,6 +19,7 @@ import Toast from '../../components/common/Toast/Toast';
 import styles from './EmailClient.module.css';
 
 const API_BASE = '/communication';
+const PAGE_SIZE = 50;
 
 const PROVIDER_ICONS = {
   gmail: { label: 'Gmail', color: '#ea4335', icon: <Mail size={22} /> },
@@ -32,6 +33,12 @@ const PROVIDER_ICONS = {
 ═══════════════════════════════════════════════════ */
 function RichEditor({ value, onChange, placeholder = 'Write your message here...' }) {
   const editorRef = useRef(null);
+
+  useEffect(() => {
+    if (editorRef.current && value && !editorRef.current.innerHTML) {
+      editorRef.current.innerHTML = value;
+    }
+  }, [value]);
 
   const exec = (cmd, val = null) => {
     editorRef.current?.focus();
@@ -164,8 +171,8 @@ function EmailChipInput({ value, onChange, placeholder }) {
 /* ═══════════════════════════════════════════════════
    COMPOSE WINDOW (Gmail-style floating panel)
 ═══════════════════════════════════════════════════ */
-function ComposeWindow({ onClose, onSend, onToast, activeAccount, replyTo = null }) {
-  const initialTo = replyTo?.isDraft ? (replyTo.to ? replyTo.to.split(',').map(e => e.trim()) : []) :
+function ComposeWindow({ onClose, onSend, onSaveDraft, onToast, activeAccount, replyTo = null }) {
+  const initialTo = replyTo?.isDraft ? (replyTo.recipient ? replyTo.recipient.split(',').map(e => e.trim()) : []) :
     replyTo?.isForward ? [] :
       replyTo?.isReplyAll ? [replyTo.fromEmail, ...(replyTo?.cc ? replyTo.cc.split(',').map(e => e.trim()) : [])].filter(Boolean) :
         replyTo ? [replyTo.fromEmail] : [];
@@ -178,7 +185,7 @@ function ComposeWindow({ onClose, onSend, onToast, activeAccount, replyTo = null
       replyTo?.isForward ? `Fwd: ${replyTo.subject}` :
         replyTo ? `Re: ${replyTo.subject}` : ''
   );
-  const [body, setBody] = useState(replyTo?.isDraft ? replyTo.body : '');
+  const [body, setBody] = useState(replyTo?.isDraft ? (replyTo.body_html || replyTo.body_text || '') : '');
   const [showCc, setShowCc] = useState(replyTo?.isDraft && (replyTo.cc || replyTo.bcc) ? true : false);
   const [minimized, setMinimized] = useState(false);
   const [maximized, setMaximized] = useState(false);
@@ -205,6 +212,40 @@ function ComposeWindow({ onClose, onSend, onToast, activeAccount, replyTo = null
     setAttachments(prev => [...prev, ...validFiles]);
   };
 
+  const [lastSaved, setLastSaved] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const lastContent = useRef({ to, cc, bcc, subject, body });
+
+  useEffect(() => {
+    lastContent.current = { to, cc, bcc, subject, body };
+  }, [to, cc, bcc, subject, body]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const current = { to, cc, bcc, subject, body };
+      const hasChanged = JSON.stringify(current) !== JSON.stringify(lastContent.current);
+      
+      if (hasChanged || (replyTo?.isDraft && !lastSaved)) {
+        handleDraftAuto();
+      }
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [to, cc, bcc, subject, body]);
+
+  const handleDraftAuto = async () => {
+    setIsSaving(true);
+    await onSaveDraft({
+      to: to.join(', '),
+      cc: cc.join(', '),
+      bcc: bcc.join(', '),
+      subject, body,
+      is_draft: true,
+      draft_id: replyTo?.id || null 
+    }, true);
+    setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    setIsSaving(false);
+  };
+
   const handleSend = () => {
     if (to.length === 0) {
       if (onToast) onToast({ message: 'Please specify at least one recipient.', type: 'error' });
@@ -215,7 +256,20 @@ function ComposeWindow({ onClose, onSend, onToast, activeAccount, replyTo = null
       cc: cc.join(', '),
       bcc: bcc.join(', '),
       subject, body,
-      attachments: attachments.map(a => a.name)
+      attachments: attachments.map(a => a.name),
+      draft_id: replyTo?.id || null
+    });
+    onClose();
+  };
+
+  const handleDraft = () => {
+    onSaveDraft({
+      to: to.join(', '),
+      cc: cc.join(', '),
+      bcc: bcc.join(', '),
+      subject, body,
+      is_draft: true,
+      draft_id: replyTo?.id || null 
     });
     onClose();
   };
@@ -231,8 +285,11 @@ function ComposeWindow({ onClose, onSend, onToast, activeAccount, replyTo = null
       {/* Header */}
       <div className={styles.composeHead}>
         <div className={styles.composeHeadLeft}>
-          <Pencil size={14} />
-          <span>{replyTo ? `Reply — ${replyTo.subject}` : 'New Message'}</span>
+          <Pencil size={14} color="#ffffff" />
+          <span style={{ color: '#ffffff' }}>
+            {replyTo?.isDraft ? `Draft — ${replyTo.subject || '(No Subject)'}` : 
+             replyTo ? `Reply — ${replyTo.subject}` : 'New Message'}
+          </span>
         </div>
         <div className={styles.composeHeadActions}>
           <button title="Discard" onClick={onClose} className={styles.composeHeadDiscard}>
@@ -302,12 +359,17 @@ function ComposeWindow({ onClose, onSend, onToast, activeAccount, replyTo = null
             <div className={styles.composeFrom}>
               <div className={styles.accountDotSmall} style={{ background: '#64748b' }} />
               <span>{activeAccount?.email_address}</span>
+              {lastSaved && <span className={styles.draftStatus}> • Saved at {lastSaved}</span>}
+              {isSaving && <Loader2 size={12} className={styles.spinning} />}
             </div>
             <div className={styles.composeActions}>
               <input ref={fileRef} type="file" multiple hidden onChange={handleAttach} />
               <button className={styles.composeToolBtn} title="Attach File" onClick={() => fileRef.current?.click()}>
                 <Paperclip size={15} />
               </button>
+              <Button variant="outline" onClick={handleDraft} style={{ marginRight: '0.5rem' }}>
+                Save Draft
+              </Button>
               <Button variant="primary" icon={<Send size={14} />} onClick={handleSend}>
                 Send
               </Button>
@@ -426,27 +488,22 @@ function AccountConfigModal({ onClose, onSave, onToast, editAccount = null }) {
 
                 {config.provider === 'custom' && (
                   <>
-                    <div className={styles.configFormGroup}><label>IMAP Host</label><input className={styles.configInput} placeholder="imap.example.com" value={config.imap_host} onChange={e => setConfig({ ...config, imap_host: e.target.value })} /></div>
-                    <div className={styles.configFormGroup}><label>SMTP Host</label><input className={styles.configInput} placeholder="smtp.example.com" value={config.smtp_host} onChange={e => setConfig({ ...config, smtp_host: e.target.value })} /></div>
+                    <div className={styles.configFormGroup}><label>IMAP Host</label><input className={styles.configInput} value={config.imap_host} onChange={e => setConfig({ ...config, imap_host: e.target.value })} /></div>
+                    <div className={styles.configFormGroup}><label>SMTP Host</label><input className={styles.configInput} value={config.smtp_host} onChange={e => setConfig({ ...config, smtp_host: e.target.value })} /></div>
                   </>
                 )}
               </div>
 
               {validationError && (
                 <motion.div 
-                  initial={{ opacity: 0, y: 10 }} 
-                  animate={{ opacity: 1, y: 0 }} 
+                  initial={{ opacity: 0, x: -10 }} 
+                  animate={{ opacity: 1, x: 0 }} 
                   className={styles.configError}
                 >
-                  <AlertCircle size={16} /> 
-                  <div className={styles.errorContent}>
-                    <strong>Connection Failed</strong>
-                    <span>{validationError}</span>
-                  </div>
+                  <AlertCircle size={14} /> <span>{validationError}</span>
                 </motion.div>
               )}
             </div>
-
           )}
         </div>
 
@@ -491,58 +548,53 @@ function AccountSwitcher({ accounts, activeId, onSwitch, onAdd, onEdit, onRemove
   return (
     <div className={styles.accountSwitcherWrap} ref={ref}>
       <button className={styles.accountSwitcherBtn} onClick={() => setOpen(o => !o)}>
-        <div className={styles.accountAvatar} style={{ background: active.avatarColor }}>
-          {active.avatar}
-        </div>
         <div className={styles.accountMeta}>
           <span className={styles.accountEmail}>{active.email_address || active.email}</span>
-          <span className={styles.accountRole}>
-            {PROVIDER_ICONS[active.provider]?.label || 'Set up'}
-          </span>
+          <span className={styles.accountDisplayName}>{active.display_name || 'Switch Account'}</span>
         </div>
-        <ChevronDown size={14} className={`${styles.chevronDown} ${open ? styles.chevronUp : ''}`} />
+        <ChevronDown size={18} className={open ? `${styles.chevronDown} ${styles.chevronUp}` : styles.chevronDown} />
       </button>
-
 
       <AnimatePresence>
         {open && (
           <motion.div
             className={styles.accountDropdown}
-            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.97 }}
-            transition={{ duration: 0.15 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            <div className={styles.dropdownSection}>All Accounts</div>
-            {accounts.map(acc => (
-              <div key={acc.id} className={styles.dropdownAccountRow}>
-                <button
-                  className={`${styles.dropdownAccount} ${acc.id === activeId ? styles.dropdownAccountActive : ''}`}
+            <div className={styles.dropdownSection}>Manage Accounts</div>
+            
+            <div className={styles.accountsList}>
+              {accounts.map(acc => (
+                <div 
+                  key={acc.id} 
+                  className={`${styles.dropdownAccountRow} ${acc.id === activeId ? styles.dropdownAccountActive : ''}`}
                   onClick={() => { onSwitch(acc.id); setOpen(false); }}
                 >
-                  <div className={styles.accountAvatarSm} style={{ background: acc.avatarColor }}>{acc.avatar}</div>
-                  <div className={styles.dropdownAccountMeta}>
+                  <div className={styles.dropdownAccountHeader}>
                     <span className={styles.dropdownEmail}>{acc.email_address || acc.email}</span>
-                    <span className={styles.dropdownRole}>
-                      {PROVIDER_ICONS[acc.provider]?.label} · {acc.role || 'Active'}
-                    </span>
+                    <button
+                      className={styles.dropdownRemoveBtn}
+                      title={`Remove ${acc.email}`}
+                      onClick={(e) => { e.stopPropagation(); setOpen(false); onRemove(acc.id); }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
+                  <div className={styles.dropdownAccountFooter}>
+                    <span className={styles.dropdownDisplayName}>{acc.display_name}</span>
+                    {acc.id === activeId && <span className={styles.activeBadge}>Active</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
 
-                  {acc.id === activeId && <Check size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />}
-                  {acc.unread > 0 && <span className={styles.miniUnreadBadge}>{acc.unread}</span>}
-                </button>
-                <button
-                  className={styles.dropdownRemoveBtn}
-                  title={`Remove ${acc.email}`}
-                  onClick={(e) => { e.stopPropagation(); setOpen(false); onRemove(acc.id); }}
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            ))}
             <div className={styles.dropdownDivider} />
+            
             <button className={styles.dropdownAddBtn} onClick={() => { onAdd(); setOpen(false); }}>
-              <Plus size={14} /> Add another account
+              <Plus size={16} /> Add another account
             </button>
           </motion.div>
         )}
@@ -768,6 +820,12 @@ const getAvatarColor = (name) => {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 };
 
+const stripHtml = (html) => {
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || "";
+};
+
 export default function EmailClient() {
   const [accounts, setAccounts] = useState([]);
   const [activeAccountId, setActiveAccountId] = useState(null);
@@ -777,6 +835,7 @@ export default function EmailClient() {
   const [composing, setComposing] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [showFilter, setShowFilter] = useState(false);
   const [filters, setFilters] = useState({
     readStatus: '', starred: '', hasAttachment: '', sortBy: 'newest'
@@ -864,6 +923,9 @@ export default function EmailClient() {
     return matchSearch && matchRead && matchStar;
   });
 
+  const totalPages = Math.ceil(filteredEmails.length / PAGE_SIZE);
+  const paginatedEmails = filteredEmails.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   const hasActiveFilters = Object.entries(filters).some(([k, v]) => k !== 'sortBy' && v !== '');
 
   const clearFilters = () => setFilters({ readStatus: '', starred: '', hasAttachment: '', sortBy: 'newest' });
@@ -879,12 +941,34 @@ export default function EmailClient() {
 
   const toggleStar = async (emailId, e) => {
     e.stopPropagation();
-    setToast({ message: 'Star feature coming soon to backend sync...', type: 'info' });
+    try {
+      const res = await apiClient(`${API_BASE}/messages/${emailId}/star/`, { method: 'POST' });
+      if (res.success) {
+        setEmails(prev => prev.map(e => e.id === emailId ? { ...e, is_starred: res.is_starred } : e));
+        if (selectedEmail?.id === emailId) {
+          setSelectedEmail(prev => ({ ...prev, is_starred: res.is_starred }));
+        }
+      }
+    } catch (err) {
+      setToast({ message: 'Failed to star/unstar message.', type: 'error' });
+    }
   };
 
   const handleOpenEmail = async (email) => {
+    if (email.folder === 'drafts') {
+      setReplyTo({
+        ...email,
+        isDraft: true,
+        to: email.recipient,
+        body: email.body_html || email.body_text
+      });
+      setComposing(true);
+      return;
+    }
+
     setSelectedEmail(email);
-    if (!email.is_read) {
+    // Only mark as read if it's in the inbox and currently unread
+    if (!email.is_read && email.folder === 'inbox') {
       try {
         await apiClient(`${API_BASE}/messages/${email.id}/`, {
           method: 'PATCH',
@@ -905,12 +989,45 @@ export default function EmailClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
+      // If we were sending a draft, delete the draft first
+      if (data.draft_id) {
+        await apiClient(`${API_BASE}/messages/${data.draft_id}/`, { method: 'DELETE' });
+      }
       setToast({ message: 'Email sent successfully!', type: 'success' });
       setComposing(false);
       setReplyTo(null);
       fetchMessages();
     } catch (err) {
       setToast({ message: 'Failed to send email.', type: 'error' });
+    }
+  };
+
+  const handleSaveDraft = async (data, silent = false) => {
+    try {
+      const method = data.draft_id ? 'PATCH' : 'POST';
+      const endpoint = data.draft_id ? `${API_BASE}/messages/${data.draft_id}/` : `${API_BASE}/messages/`;
+      
+      await apiClient(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          account: activeAccountId,
+          sender: activeAccount?.email_address,
+          subject: data.subject || '(No Subject)',
+          recipient: data.to,
+          cc: data.cc,
+          bcc: data.bcc,
+          body_text: stripHtml(data.body),
+          body_html: data.body,
+          folder: 'drafts',
+          received_at: new Date().toISOString(),
+          uid: `draft_${Date.now()}`
+        })
+      });
+      if (!silent) setToast({ message: 'Draft saved.', type: 'success' });
+      fetchMessages();
+    } catch (err) {
+      if (!silent) setToast({ message: 'Failed to save draft.', type: 'error' });
     }
   };
 
@@ -960,9 +1077,57 @@ export default function EmailClient() {
   const handleReply = (email) => { setReplyTo(email); setComposing(true); };
   const handleReplyAll = (email) => { setReplyTo({ ...email, isReplyAll: true }); setComposing(true); };
   const handleForward = (email) => { setReplyTo({ ...email, isForward: true }); setComposing(true); };
-  const handleTrash = (email) => { setToast({ message: 'Delete coming soon...', type: 'info' }); };
-  const handleMarkUnread = (email) => { setToast({ message: 'Feature coming soon...', type: 'info' }); };
-  const handleRecover = (email) => { setToast({ message: 'Feature coming soon...', type: 'info' }); };
+  
+  const handleTrash = async (email) => {
+    try {
+      if (folder === 'trash') {
+        await apiClient(`${API_BASE}/messages/${email.id}/`, { method: 'DELETE' });
+        setToast({ message: 'Message deleted permanently.', type: 'success' });
+      } else {
+        await apiClient(`${API_BASE}/messages/${email.id}/`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folder: 'trash', is_starred: false })
+        });
+        setToast({ message: 'Moved to Trash.', type: 'success' });
+      }
+      setSelectedEmail(null);
+      fetchMessages();
+    } catch (err) {
+      setToast({ message: 'Failed to remove message.', type: 'error' });
+    }
+  };
+
+  const handleMarkUnread = async (email) => {
+    try {
+      await apiClient(`${API_BASE}/messages/${email.id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_read: false })
+      });
+      setEmails(prev => prev.map(e => e.id === email.id ? { ...e, is_read: false } : e));
+      setSelectedEmail(null);
+      fetchMessages();
+      setToast({ message: 'Marked as unread.', type: 'success' });
+    } catch (err) {
+      setToast({ message: 'Failed to mark as unread.', type: 'error' });
+    }
+  };
+
+  const handleRecover = async (email) => {
+    try {
+      await apiClient(`${API_BASE}/messages/${email.id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder: 'inbox' })
+      });
+      setSelectedEmail(null);
+      fetchMessages();
+      setToast({ message: 'Recovered to Inbox.', type: 'success' });
+    } catch (err) {
+      setToast({ message: 'Failed to recover.', type: 'error' });
+    }
+  };
 
   return (
     <motion.div
@@ -993,6 +1158,7 @@ export default function EmailClient() {
           <ComposeWindow
             onClose={() => { setComposing(false); setReplyTo(null); }}
             onSend={handleSend}
+            onSaveDraft={handleSaveDraft}
             onToast={setToast}
             activeAccount={activeAccount}
             replyTo={replyTo}
@@ -1090,45 +1256,52 @@ export default function EmailClient() {
             <AccountSwitcher
               accounts={accounts}
               activeId={activeAccountId}
-              onSwitch={id => { setActiveAccountId(id); setSelectedEmail(null); setFolder('inbox'); }}
+              onSwitch={id => { 
+                setActiveAccountId(id); 
+                setSelectedEmail(null); 
+                setFolder('inbox'); 
+                setCurrentPage(1);
+              }}
               onAdd={() => { setEditingAccount(null); setShowConfigModal(true); }}
               onEdit={acc => { setEditingAccount(acc); setShowConfigModal(true); }}
               onRemove={id => setConfirmRemove(id)}
             />
 
-            <Button
-              variant="primary"
-              icon={<Pencil size={13} />}
-              className={styles.composeBtn}
-              onClick={() => { setReplyTo(null); setComposing(true); }}
-            >
-              Compose
-            </Button>
-
-            <nav className={styles.folderNav}>
-              {FOLDERS.map(f => (
-                <button
-                  key={f.key}
-                  className={`${styles.folderItem} ${folder === f.key ? styles.folderActive : ''}`}
-                  onClick={() => { setFolder(f.key); setSelectedEmail(null); }}
-                >
-                  <span className={styles.folderIcon}>{f.icon}</span>
-                  <span className={styles.folderLabel}>{f.label}</span>
-                </button>
-              ))}
-            </nav>
-
-            <div className={styles.extractionToggleBtn}>
-              <div className={styles.extractionToggleInfo} onClick={() => setShowExtractionModal(true)}>
-                <Database size={15} />
-                <span>Resume Extraction</span>
-              </div>
-              <button
-                className={`${styles.toggleSwitch} ${extractionEnabled ? styles.toggleSwitchOn : ''}`}
-                onClick={() => setShowExtractionModal(true)}
+            <div className={styles.sidebarContent}>
+              <Button
+                variant="primary"
+                icon={<Pencil size={13} />}
+                className={styles.composeBtn}
+                onClick={() => { setReplyTo(null); setComposing(true); }}
               >
-                <div className={`${styles.toggleKnob}`} />
-              </button>
+                Compose
+              </Button>
+
+              <nav className={styles.folderNav}>
+                {FOLDERS.map(f => (
+                  <button
+                    key={f.key}
+                    className={`${styles.folderItem} ${folder === f.key ? styles.folderActive : ''}`}
+                    onClick={() => { setFolder(f.key); setSelectedEmail(null); setCurrentPage(1); }}
+                  >
+                    <span className={styles.folderIcon}>{f.icon}</span>
+                    <span className={styles.folderLabel}>{f.label}</span>
+                  </button>
+                ))}
+              </nav>
+
+              <div className={styles.extractionToggleBtn}>
+                <div className={styles.extractionToggleInfo} onClick={() => setShowExtractionModal(true)}>
+                  <Database size={15} />
+                  <span>Resume Extraction</span>
+                </div>
+                <button
+                  className={`${styles.toggleSwitch} ${extractionEnabled ? styles.toggleSwitchOn : ''}`}
+                  onClick={() => setShowExtractionModal(true)}
+                >
+                  <div className={`${styles.toggleKnob}`} />
+                </button>
+              </div>
             </div>
           </aside>
 
@@ -1169,12 +1342,12 @@ export default function EmailClient() {
                   {hasActiveFilters && <span className={styles.filterDot} />}
                 </button>
                 <button
-                  className={`${styles.toolbarIconBtn} ${isSyncing ? styles.syncSpin : ''}`}
+                  className={styles.toolbarIconBtn}
                   title="Refresh & Sync"
                   onClick={() => handleSync()}
                   disabled={isSyncing}
                 >
-                  <RefreshCw size={14} />
+                  <RefreshCw size={14} className={isSyncing ? styles.spinning : ''} />
                 </button>
               </div>
             </div>
@@ -1210,7 +1383,7 @@ export default function EmailClient() {
                       {isSyncing && <p className={styles.emptySub}>This may take a moment depending on your connection.</p>}
                     </motion.div>
                   ) : (
-                    filteredEmails.map((email, idx) => {
+                    paginatedEmails.map((email, idx) => {
                       const isSent = folder === 'sent' || folder === 'drafts';
                       const displayName = isSent ? `To: ${email.recipient}` : (email.sender?.split('<')[0]?.trim() || email.sender);
                       const isUnread = !email.is_read && folder === 'inbox';
@@ -1219,7 +1392,7 @@ export default function EmailClient() {
                       const timeStr = new Date(email.received_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                       return (
-                        <motion.button
+                        <motion.div
                           key={email.id}
                           layout
                           className={`${styles.emailItem} ${isSelected ? styles.emailItemSelected : ''} ${isUnread ? styles.emailItemUnread : ''}`}
@@ -1236,19 +1409,45 @@ export default function EmailClient() {
                               <span className={styles.emailItemTime}>{timeStr}</span>
                             </div>
                             <div className={styles.emailItemSubject}>{email.subject}</div>
-                            <div className={styles.emailItemPreview}>{email.body_text?.slice(0, 100)}</div>
+                            <div className={styles.emailItemPreview}>
+                              {stripHtml(email.body_text || email.body_html).slice(0, 100)}
+                            </div>
                           </div>
                           <div className={styles.emailItemSide}>
-                            <button className={`${styles.starBtn} ${email.is_starred ? styles.starActive : ''}`} onClick={e => toggleStar(email.id, e)}>
-                              <Star size={13} />
-                            </button>
+                            {folder !== 'trash' && (
+                              <button className={`${styles.starBtn} ${email.is_starred ? styles.starActive : ''}`} onClick={e => toggleStar(email.id, e)}>
+                                <Star size={13} fill={email.is_starred ? "currentColor" : "none"} />
+                              </button>
+                            )}
                             {isUnread && <div className={styles.unreadDot} />}
                           </div>
-                        </motion.button>
+                        </motion.div>
                       );
                     })
                   )}
                 </AnimatePresence>
+                
+                {totalPages > 1 && (
+                  <div className={styles.pagination}>
+                    <button 
+                      className={styles.paginationBtn} 
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => prev - 1)}
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <span className={styles.pageInfo}>
+                      {currentPage} / {totalPages}
+                    </span>
+                    <button 
+                      className={styles.paginationBtn} 
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <AnimatePresence mode="wait">

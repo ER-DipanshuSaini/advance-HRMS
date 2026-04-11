@@ -1,6 +1,6 @@
 import threading
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
@@ -106,17 +106,29 @@ class MailMessageViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        account_id = self.request.query_params.get('account_id')
-        folder = self.request.query_params.get('folder', 'inbox')
-        
         queryset = MailMessage.objects.filter(account__user=self.request.user)
         
-        if account_id:
-            queryset = queryset.filter(account_id=account_id)
-        if folder:
-            queryset = queryset.filter(folder=folder)
+        # Only apply listing filters (account/folder) if we are not looking up a specific ID
+        if not self.kwargs.get('pk'):
+            account_id = self.request.query_params.get('account_id')
+            folder = self.request.query_params.get('folder', 'inbox')
+            
+            if account_id:
+                queryset = queryset.filter(account_id=account_id)
+            
+            if folder == 'starred':
+                queryset = queryset.filter(is_starred=True)
+            elif folder:
+                queryset = queryset.filter(folder=folder)
             
         return queryset.order_by('-received_at')
+
+    @action(detail=True, methods=['post'])
+    def star(self, request, pk=None):
+        message = self.get_object()
+        message.is_starred = not message.is_starred
+        message.save()
+        return Response({'success': True, 'is_starred': message.is_starred})
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
