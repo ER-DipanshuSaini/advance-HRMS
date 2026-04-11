@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail, Send, FileText, Trash2, Star, Search,
-  Inbox, RefreshCw, Pencil, ChevronDown, ChevronRight,
+  Inbox, RefreshCw, Pencil, ChevronDown, ChevronRight, ChevronLeft,
   Reply, ReplyAll, Forward, MoreHorizontal, Paperclip,
   X, Settings, Check, AlertCircle, ArrowLeft,
   Bold, Italic, Underline, Link2, AlignLeft, AlignCenter,
@@ -256,7 +256,7 @@ function ComposeWindow({ onClose, onSend, onSaveDraft, onToast, activeAccount, r
       cc: cc.join(', '),
       bcc: bcc.join(', '),
       subject, body,
-      attachments: attachments.map(a => a.name),
+      attachments: attachments.map(a => a.file), // Pass the actual File objects
       draft_id: replyTo?.id || null
     });
     onClose();
@@ -785,6 +785,36 @@ function EmailView({ email, folder, onBack, onReply, onReplyAll, onForward, onTr
         dangerouslySetInnerHTML={{ __html: email.body_html || email.body_text }}
       />
 
+      {/* Attachments Section */}
+      {email.attachments && email.attachments.length > 0 && (
+        <div className={styles.viewAttachments}>
+          <div className={styles.attachTitle}>
+            <Paperclip size={14} /> Attachments ({email.attachments.length})
+          </div>
+          <div className={styles.attachGrid}>
+            {email.attachments.map(att => (
+              <a 
+                key={att.id} 
+                href={att.file} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className={styles.viewAttachCard}
+                title={`Download ${att.file_name}`}
+              >
+                <div className={styles.attachIcon}><FileText size={18} /></div>
+                <div className={styles.attachMeta}>
+                  <div className={styles.attachName}>{att.file_name}</div>
+                  <div className={styles.attachSize}>{(att.file_size / 1024).toFixed(1)} KB</div>
+                </div>
+                <button className={styles.attachDownloadBtn}>
+                  <ExternalLink size={14} />
+                </button>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Quick Reply */}
       {!isOutgoing && (
         <div className={styles.quickReplyContainer}>
@@ -984,10 +1014,24 @@ export default function EmailClient() {
 
   const handleSend = async (data) => {
     try {
+      const formData = new FormData();
+      formData.append('to', data.to);
+      formData.append('cc', data.cc);
+      formData.append('bcc', data.bcc);
+      formData.append('subject', data.subject);
+      formData.append('body', data.body);
+      if (data.draft_id) formData.append('draft_id', data.draft_id);
+      
+      if (data.attachments && data.attachments.length > 0) {
+        data.attachments.forEach(file => {
+          formData.append('attachments', file);
+        });
+      }
+
       await apiClient(`${API_BASE}/send/${activeAccountId}/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        // Note: Don't set Content-Type header when using FormData; the browser will set it with the correct boundary
+        body: formData
       });
       // If we were sending a draft, delete the draft first
       if (data.draft_id) {

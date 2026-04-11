@@ -1171,9 +1171,107 @@
   overflow-y: auto;
 }
 
-.viewBody p {
+.viewBody * {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+/* ── ATTACHMENTS SECTION ──────────────────── */
+.viewAttachments {
+  padding: 1.25rem 1.5rem;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+}
+
+.attachTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
   margin-bottom: 0.875rem;
-  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.attachGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.viewAttachCard {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 0.75rem;
+  border-radius: 12px;
+  min-width: 220px;
+  max-width: 280px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.viewAttachCard:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.attachIcon {
+  width: 38px;
+  height: 38px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  transition: all 0.2s;
+}
+
+.viewAttachCard:hover .attachIcon {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.attachMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.attachName {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.125rem;
+}
+
+.attachSize {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.attachDownloadBtn {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  padding: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.viewAttachCard:hover .attachDownloadBtn {
+  color: var(--primary);
 }
 
 .viewBody strong {

@@ -4,8 +4,9 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
-from .models import MailAccount, MailMessage
-from .serializers import MailAccountSerializer, MailMessageSerializer
+from django.core.files.base import ContentFile
+from .models import MailAccount, MailMessage, MailAttachment
+from .serializers import MailAccountSerializer, MailMessageSerializer, MailAttachmentSerializer
 from .manager import MailManager
 
 class MailAccountViewSet(viewsets.ModelViewSet):
@@ -56,7 +57,7 @@ def sync_mailbox(request, account_id):
     
     new_count = 0
     for data in email_data:
-        _, created = MailMessage.objects.get_or_create(
+        msg, created = MailMessage.objects.get_or_create(
             account=account,
             uid=data['uid'],
             folder='inbox',
@@ -69,7 +70,17 @@ def sync_mailbox(request, account_id):
                 'received_at': data['received_at']
             }
         )
-        if created: new_count += 1
+        if created:
+            new_count += 1
+            # Save attachments
+            for att_data in data.get('attachments', []):
+                MailAttachment.objects.create(
+                    message=msg,
+                    file=ContentFile(att_data['content'], name=att_data['filename']),
+                    file_name=att_data['filename'],
+                    file_size=att_data['size'],
+                    content_type=att_data['content_type']
+                )
 
     account.last_sync_at = timezone.now()
     account.save()
@@ -78,7 +89,7 @@ def sync_mailbox(request, account_id):
     def background_sync():
         deep_data = MailManager.fetch_latest_emails(account, limit=50) # In real life, would be chunked
         for data in deep_data:
-            MailMessage.objects.get_or_create(
+            msg, created = MailMessage.objects.get_or_create(
                 account=account,
                 uid=data['uid'],
                 folder='inbox',
@@ -91,6 +102,15 @@ def sync_mailbox(request, account_id):
                     'received_at': data['received_at']
                 }
             )
+            if created:
+                for att_data in data.get('attachments', []):
+                    MailAttachment.objects.create(
+                        message=msg,
+                        file=ContentFile(att_data['content'], name=att_data['filename']),
+                        file_name=att_data['filename'],
+                        file_size=att_data['size'],
+                        content_type=att_data['content_type']
+                    )
 
     thread = threading.Thread(target=background_sync)
     thread.start()
@@ -135,6 +155,7 @@ class MailMessageViewSet(viewsets.ModelViewSet):
 def send_mail_view(request, account_id):
     """
     Sends an email and stores it in the 'Sent' folder.
+    Supports attachments via request.FILES.
     """
     try:
         account = MailAccount.objects.get(id=account_id, user=request.user)
@@ -142,18 +163,21 @@ def send_mail_view(request, account_id):
         return Response({'error': 'Account not found'}, status=404)
 
     data = request.data
+    attachments = request.FILES.getlist('attachments')
+    
     success, error = MailManager.send_email(
         account, 
         data.get('to'), 
         data.get('subject'), 
         data.get('body'),
         cc=data.get('cc'),
-        bcc=data.get('bcc')
+        bcc=data.get('bcc'),
+        attachments=attachments
     )
 
     if success:
         # Save to Sent folder
-        MailMessage.objects.create(
+        msg = MailMessage.objects.create(
             account=account,
             uid=f"sent_{int(timezone.now().timestamp())}",
             folder='sent',
@@ -163,6 +187,33 @@ def send_mail_view(request, account_id):
             body_html=data.get('body'),
             received_at=timezone.now()
         )
+        # Save attachments to the record
+        for f in attachments:
+            MailAttachment.objects.create(
+                message=msg,
+                file=f,
+                file_name=f.name,
+                file_size=f.size,
+                content_type=f.content_type
+            )
         return Response({'success': True})
     else:
         return Response({'success': False, 'error': error}, status=400)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_attachment(request, attachment_id):
+    """
+    Returns the attachment file.
+    """
+    try:
+        attachment = MailAttachment.objects.get(id=attachment_id, message__account__user=request.user)
+        response = Response(status=status.HTTP_200_OK)
+        # In a real app, you might use Django's FileResponse or just return the URL
+        # Here we return metadata + URL for simplicity, or we could redirect
+        return Response({
+            'file_name': attachment.file_name,
+            'url': request.build_absolute_uri(attachment.file.url)
+        })
+    except MailAttachment.DoesNotExist:
+        return Response({'error': 'Attachment not found'}, status=404)
