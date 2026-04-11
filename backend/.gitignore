@@ -1,0 +1,18 @@
+# Python environments
+venv/
+.venv/
+env/
+.env
+
+# __pycache__
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# SQL
+*.sqlite3
+*.db
+
+# OS
+.DS_Store

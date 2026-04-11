@@ -1,0 +1,122 @@
+Software Requirements Specification (SRS)
+Project: AI-Driven HRMS with Candidate Management
+
+1. Introduction
+1.1 Purpose
+This document defines the functional and non-functional requirements of a Human Resource Management System (HRMS) integrated with an automated candidate sourcing and matching system. The goal is to help HR efficiently manage employees and streamline hiring.
+1.2 Scope
+The system will:
+Provide login access to all employees (including HR)
+Allow HR to configure email integration once
+Automatically fetch candidate emails and resumes using scheduled jobs
+Store candidate data in a structured database
+Allow HR to create job positions with requirements
+Display top matching candidates based on requirements
+Provide hiring pipeline management
+Convert selected candidates into employees
+1.3 Tech Stack
+Backend: Python (Django REST Framework)
+Frontend: React.js
+Database: SQLite (initial), scalable to PostgreSQL
+Background Jobs: Cron / Celery
+Containerization: Docker
+
+2. Overall Description
+2.1 Product Perspective
+This system is a production-grade, scalable web application designed with a service-oriented architecture. It will support future mobile applications by exposing all functionality via REST APIs.
+2.2 Users
+HR (Admin level access)
+Manager
+Employees (basic access)
+2.3 Assumptions
+HR will configure email credentials correctly
+Candidates apply via email
+Resume files are in PDF/DOCX format
+System will be accessed via web initially and mobile apps in future
+2.4 System Architecture
+Backend will expose REST APIs (stateless)
+Authentication via JWT tokens
+Role-Based Access Control (RBAC)
+Frontend (React) consumes APIs
+Future mobile apps will reuse same APIs
+
+3. Functional Requirements
+3.1 Authentication & Authorization
+Users can log in using secure authentication
+System will use JWT-based authentication
+Role-based access control (RBAC) will be implemented
+Permissions can be assigned by Admin/HR
+3.2 User & Employee Management
+Users can log in and log out
+HR/Admin can view all employees
+HR/Admin can add/edit/delete employees
+Department management (create/update/delete departments)
+Manager assignment to employees
+Employee profile management
+3.3 Attendance Management
+Employees can mark daily attendance
+HR/Admin can view attendance reports
+3.4 Leave Management
+Employees can apply for leaves
+HR/Manager can approve/reject leaves
+Employees can view leave balance
+3.5 Policy Management
+HR can upload and manage company policies
+Employees can view policies
+3.6 Email Configuration
+HR can configure email credentials once via UI
+HR can update or change email settings anytime
+3.7 Candidate Data Collection
+System runs a scheduled cron job at fixed intervals
+Fetch emails from configured inbox
+Extract candidate details and resume attachments
+Store candidate data in database
+3.8 Resume Processing
+Extract key information (name, email, skills, experience)
+Store resume file and parsed data
+3.9 Position Management
+HR can create a new job position
+Fields include:
+Job Title
+Description (JD)
+Required Skills
+Experience Required
+3.10 Candidate Matching
+System matches candidates with job requirements
+Generate ranking score
+Display candidates in descending order of match
+3.11 Hiring Workflow
+HR selects candidates from matching list
+HR processes selected candidates
+HR can:
+View detailed candidate profile
+View resume
+Update status (Shortlist, Telephonic, Screening, Technical, Manager, Hired)
+Add notes
+3.12 Candidate to Employee Conversion
+HR can convert a candidate into an employee with one action
+Candidate data will be used to create employee account
+
+4. Non-Functional Requirements
+4.1 Performance
+System should handle large number of candidates efficiently
+Matching results should load within acceptable time (<5 seconds)
+4.2 Security
+Secure authentication and authorization
+Email credentials must be encrypted
+4.3 Scalability
+System should support migration from SQLite to PostgreSQL
+4.4 Usability
+Simple and user-friendly UI for HR operations
+4.5 Reliability
+Cron job should run reliably without data loss
+
+5. Future Enhancements
+AI-based resume matching (embeddings)
+Notifications system
+Analytics dashboard
+Multi-company support (SaaS model)
+
+6. Conclusion
+This system aims to simplify HR operations by automating candidate sourcing and improving hiring efficiency through structured workflows and smart matching.
+
