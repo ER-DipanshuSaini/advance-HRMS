@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'modules.organizations.apps.OrganizationsConfig',
     'modules.users.apps.UsersConfig',
     'modules.attendance.apps.AttendanceConfig',
+    'modules.candidate_etl.apps.CandidateEtlConfig',
 ]
 
 MIDDLEWARE = [
