@@ -23,6 +23,7 @@ class MailAccount(models.Model):
     smtp_port = models.IntegerField(default=587)
     
     is_active = models.BooleanField(default=True)
+    is_etl_enabled = models.BooleanField(default=False, help_text="Enable automated Resume Extraction for this account")
     last_sync_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
