@@ -9,6 +9,8 @@
 
 Advance HRMS is a production-grade, AI-driven Human Resource Management System designed to streamline the entire employee lifecycle—from automated recruitment to daily operations management.
 
+*Current Status: Phase 1 (Recruitment & Core IAM) is now live.*
+
 ## 🚀 Vision
 
 To eliminate manual overhead in HR departments by leveraging background automation, AI-driven candidate matching, and a seamless "Email-to-Employee" pipeline.
