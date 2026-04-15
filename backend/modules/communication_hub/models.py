@@ -10,6 +10,13 @@ class MailAccount(models.Model):
         ('custom', 'Custom'),
     ]
 
+    SYNC_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('syncing', 'Syncing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='mail_accounts')
     display_name = models.CharField(max_length=100, blank=True)
     email_address = models.EmailField()
@@ -24,6 +31,7 @@ class MailAccount(models.Model):
     
     is_active = models.BooleanField(default=True)
     is_etl_enabled = models.BooleanField(default=False, help_text="Enable automated Resume Extraction for this account")
+    sync_status = models.CharField(max_length=20, choices=SYNC_STATUS_CHOICES, default='pending')
     last_sync_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

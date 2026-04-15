@@ -32,7 +32,7 @@ export default function OrgStructure() {
     try {
       const data = await fetchDepts('/org/departments/');
       await fetchUsers('/iam/employees/');
-      
+
       setActiveDept(prev => {
         if (!prev && data?.length > 0) return data[0];
         if (prev && data?.length > 0) {

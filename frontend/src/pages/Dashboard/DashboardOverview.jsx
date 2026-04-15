@@ -37,21 +37,21 @@ export default function DashboardOverview() {
         <div className="card" style={{ padding: '1.5rem', border: '1px solid #e2e8f0', minHeight: '300px' }}>
           <h3 style={{ marginBottom: '1.5rem' }}>System Health</h3>
           <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '0.875rem' }}>
-             Real-time health monitoring active. All services operational.
+            Real-time health monitoring active. All services operational.
           </div>
         </div>
         <div className="card" style={{ padding: '1.5rem', border: '1px solid #e2e8f0' }}>
           <h3 style={{ marginBottom: '1.5rem' }}>Recent Logins</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#198038' }}></div>
-               <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Dipanshu Saini</span>
-               <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#64748b' }}>Just now</span>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#198038' }}></div>
+              <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Dipanshu Saini</span>
+              <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#64748b' }}>Just now</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748b' }}></div>
-               <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Rajan Kumar</span>
-               <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#64748b' }}>2 mins ago</span>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748b' }}></div>
+              <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Rajan Kumar</span>
+              <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#64748b' }}>2 mins ago</span>
             </div>
           </div>
         </div>

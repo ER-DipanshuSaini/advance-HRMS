@@ -33,6 +33,24 @@ class MailManager:
         return True, None
 
     @staticmethod
+    def _get_imap_folder(account, standard_folder):
+        """Maps standard folder names to provider-specific IMAP names."""
+        mapping = {
+            'gmail': {
+                'INBOX': 'INBOX',
+                'SENT': '"[Gmail]/Sent Mail"',
+                'TRASH': '"[Gmail]/Trash"',
+                'DRAFTS': '"[Gmail]/Drafts"',
+                'STARRED': '"[Gmail]/Starred"',
+            }
+        }
+        
+        provider = account.provider.lower()
+        if provider in mapping:
+            return mapping[provider].get(standard_folder.upper(), standard_folder)
+        return standard_folder
+
+    @staticmethod
     def fetch_latest_emails(account, folder='INBOX', limit=10):
         """
         Fetches the latest 'limit' emails from the specified folder.
@@ -40,7 +58,14 @@ class MailManager:
         try:
             imap = imaplib.IMAP4_SSL(account.imap_host, account.imap_port)
             imap.login(account.email_address, account.password)
-            imap.select(folder)
+            
+            # Use mapped folder name
+            target_folder = MailManager._get_imap_folder(account, folder)
+            status, _ = imap.select(target_folder)
+            
+            if status != 'OK':
+                print(f"Failed to select folder {target_folder} for {account.email_address}")
+                return []
 
             # Get latest UIDs
             status, messages = imap.uid('search', None, 'ALL')
@@ -136,6 +161,90 @@ class MailManager:
         except Exception as e:
             print(f"Error fetching emails: {e}")
             return []
+
+    @staticmethod
+    def sync_account_to_db(account, limit=50, folder='INBOX'):
+        """
+        Generic sync method used for both UI refresh and background sync.
+        """
+        email_data = MailManager.fetch_latest_emails(account, folder=folder, limit=limit)
+        return MailManager._save_emails_to_db(account, email_data, folder=folder.lower())
+
+    @staticmethod
+    def sync_account_incremental(account):
+        """
+        Optimized sync: Fetch emails received AFTER the last_sync_at timestamp.
+        """
+        # We'll use a simplified version: fetch latest 50 and let get_or_create handle duplicates.
+        # For a truly optimized version, we would use IMAP SEARCH SINCE.
+        # But get_or_create is safer for smaller batches.
+        folders = ['INBOX', 'SENT'] # Basic mapping, real apps should discover
+        total_new = 0
+        
+        for f in folders:
+            # Map folder name to our schema
+            schema_folder = 'sent' if 'sent' in f.lower() else 'inbox'
+            
+            # Fetch latest 20 for incremental refresh
+            email_data = MailManager.fetch_latest_emails(account, folder=f, limit=20)
+            total_new += MailManager._save_emails_to_db(account, email_data, folder=schema_folder)
+            
+        account.last_sync_at = timezone.now()
+        account.save()
+        return total_new
+
+    @staticmethod
+    def sync_account_full_historical(account):
+        """
+        Deep sync: Fetches all emails from Inbox and Sent folders in chunks.
+        """
+        # For simplicity, we'll fetch in chunks of 50
+        folders = ['INBOX', 'SENT']
+        total_saved = 0
+        
+        for f in folders:
+            schema_folder = 'sent' if 'sent' in f.lower() else 'inbox'
+            # Fetch 500 emails for a "full" sync in MVP
+            email_data = MailManager.fetch_latest_emails(account, folder=f, limit=500)
+            total_saved += MailManager._save_emails_to_db(account, email_data, folder=schema_folder)
+            
+        return total_saved
+
+    @staticmethod
+    def _save_emails_to_db(account, email_data, folder='inbox'):
+        """
+        Helper to save fetched email data to the database.
+        """
+        from .models import MailMessage, MailAttachment
+        from django.core.files.base import ContentFile
+        
+        saved_count = 0
+        for data in email_data:
+            msg, created = MailMessage.objects.get_or_create(
+                account=account,
+                uid=data['uid'],
+                folder=folder,
+                defaults={
+                    'subject': data['subject'],
+                    'sender': data['sender'],
+                    'recipient': data['recipient'],
+                    'body_text': data['body_text'],
+                    'body_html': data['body_html'],
+                    'received_at': data['received_at']
+                }
+            )
+            
+            if created:
+                saved_count += 1
+                for att in data.get('attachments', []):
+                    MailAttachment.objects.create(
+                        message=msg,
+                        file=ContentFile(att['content'], name=att['filename']),
+                        file_name=att['filename'],
+                        file_size=att['size'],
+                        content_type=att['content_type']
+                    )
+        return saved_count
 
     @staticmethod
     def send_email(account, to_email, subject, body, cc=None, bcc=None, attachments=None):

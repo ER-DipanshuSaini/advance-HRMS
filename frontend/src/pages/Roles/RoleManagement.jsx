@@ -41,8 +41,8 @@ export default function RoleManagement() {
   const groupedPermissions = useMemo(() => {
     const groups = {};
     allPermissions.forEach(p => {
-       if (!groups[p.module]) groups[p.module] = [];
-       groups[p.module].push(p);
+      if (!groups[p.module]) groups[p.module] = [];
+      groups[p.module].push(p);
     });
     return groups;
   }, [allPermissions]);
@@ -70,7 +70,7 @@ export default function RoleManagement() {
       });
       setToast({ message: "Role privileges updated successfully!", type: "success" });
       loadData();
-    } catch (e) { 
+    } catch (e) {
       setToast({ message: "Failed to update role", type: "error" });
     }
   };
@@ -86,7 +86,7 @@ export default function RoleManagement() {
       setNewRoleName('');
       roleModal.close();
       loadData();
-    } catch (e) { 
+    } catch (e) {
       setToast({ message: "Failed to create new role", type: "error" });
     }
   };
@@ -104,15 +104,15 @@ export default function RoleManagement() {
       </header>
 
       <div className={styles.workspaceGrid}>
-        
+
         <Card title="Access Roles" noPadding>
           <div className="flex flex-col">
             {roles.map(role => {
               const isActive = activeRole?.id === role.id;
               const isLocked = role.name === 'SuperAdmin';
               return (
-                <div 
-                  key={role.id} 
+                <div
+                  key={role.id}
                   onClick={() => setActiveRole(role)}
                   className={`${styles.roleRow} ${isActive ? styles.activeRow : ''}`}
                 >
@@ -128,12 +128,12 @@ export default function RoleManagement() {
         </Card>
 
         {activeRole && (
-          <Card 
+          <Card
             title={`${activeRole.name} Permissions`}
             extra={hasPerm('roles:add') ? (
-              <Button 
-                loading={actionLoading} 
-                onClick={handleSavePerms} 
+              <Button
+                loading={actionLoading}
+                onClick={handleSavePerms}
                 disabled={activeRole.name === 'SuperAdmin'}
               >
                 Save Changes
@@ -141,45 +141,45 @@ export default function RoleManagement() {
             ) : null}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-               {Object.entries(groupedPermissions).sort().map(([module, perms]) => (
-                 <div key={module}>
-                    <h4 className={styles.moduleTitle}>{module}</h4>
-                    <div className={styles.permissionGrid}>
-                       {perms.map(p => {
-                         const isSelected = activeRole.permissions_list.some(ap => ap.id === p.id);
-                         const isSuperAdminRole = activeRole.name === 'SuperAdmin';
-                         const canEdit = hasPerm('roles:add') && !isSuperAdminRole;
-                         return (
-                           <div 
-                             key={p.id} 
-                             className={`${styles.permCard} ${isSelected ? styles.permActive : ''}`}
-                             onClick={() => canEdit && togglePermission(p.id)}
-                           >
-                              <label className={styles.permLabel} onClick={e => e.stopPropagation()}>
-                                <input 
-                                   type="checkbox" 
-                                   checked={isSelected || isSuperAdminRole}
-                                   disabled={!canEdit}
-                                   onChange={() => togglePermission(p.id)}
-                                />
-                                <span className={styles.permName}>{p.name}</span>
-                              </label>
-                              <div className={styles.infoWrapper} title={p.description}>
-                                 <Info size={14} />
-                              </div>
-                           </div>
-                         );
-                       })}
-                    </div>
-                 </div>
-               ))}
+              {Object.entries(groupedPermissions).sort().map(([module, perms]) => (
+                <div key={module}>
+                  <h4 className={styles.moduleTitle}>{module}</h4>
+                  <div className={styles.permissionGrid}>
+                    {perms.map(p => {
+                      const isSelected = activeRole.permissions_list.some(ap => ap.id === p.id);
+                      const isSuperAdminRole = activeRole.name === 'SuperAdmin';
+                      const canEdit = hasPerm('roles:add') && !isSuperAdminRole;
+                      return (
+                        <div
+                          key={p.id}
+                          className={`${styles.permCard} ${isSelected ? styles.permActive : ''}`}
+                          onClick={() => canEdit && togglePermission(p.id)}
+                        >
+                          <label className={styles.permLabel} onClick={e => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected || isSuperAdminRole}
+                              disabled={!canEdit}
+                              onChange={() => togglePermission(p.id)}
+                            />
+                            <span className={styles.permName}>{p.name}</span>
+                          </label>
+                          <div className={styles.infoWrapper} title={p.description}>
+                            <Info size={14} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </Card>
         )}
       </div>
 
-      <Modal 
-        isOpen={roleModal.isOpen} 
+      <Modal
+        isOpen={roleModal.isOpen}
         onClose={roleModal.close}
         title="Create New Role"
         footer={(
@@ -189,7 +189,7 @@ export default function RoleManagement() {
           </>
         )}
       >
-        <Input 
+        <Input
           label="Role Name"
           placeholder="e.g. Project Manager"
           value={newRoleName}

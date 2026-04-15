@@ -13,7 +13,12 @@ export function useApi() {
     setLoading(true);
     setError(null);
     try {
-      const responseData = await apiClient(endpoint, options);
+      let responseData;
+      if (options.call && typeof options.call === 'function') {
+        responseData = await options.call();
+      } else {
+        responseData = await apiClient(endpoint, options);
+      }
       setData(responseData);
       return responseData;
     } catch (err) {

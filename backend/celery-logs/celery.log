@@ -1,0 +1,357 @@
+[2026-04-12 21:21:38,184: INFO/MainProcess] Celery logging initialized. Writing to /app/celery-logs/celery.log
+[2026-04-12 21:21:38,186: INFO/MainProcess] beat: Starting...
+[2026-04-12 21:21:38,225: INFO/MainProcess] Celery logging initialized. Writing to /app/celery-logs/celery.log
+[2026-04-12 21:21:39,316: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-12 21:21:39,341: INFO/MainProcess] Connected to redis://redis:6379/0
+[2026-04-12 21:21:39,343: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-12 21:21:39,349: INFO/MainProcess] mingle: searching for neighbors
+[2026-04-12 21:21:40,367: INFO/MainProcess] mingle: all alone
+[2026-04-12 21:21:40,410: INFO/MainProcess] celery@d65a0d55b83b ready.
+[2026-04-12 21:25:01,432: INFO/MainProcess] Task modules.communication_hub.tasks.full_initial_sync_task[768d200b-416f-4ba2-8184-0abcad0b1273] received
+[2026-04-12 21:25:01,599: INFO/ForkPoolWorker-7] >>> [SYNC_SESSION: START] Initiating full sync for softslite.workspace@gmail.com
+[2026-04-12 21:25:01,640: INFO/ForkPoolWorker-7] --- [SYNC_SESSION: MID] Sync status set to 'syncing' for softslite.workspace@gmail.com
+[2026-04-12 21:25:01,647: INFO/ForkPoolWorker-7]     [STEP 1: INCREMENTAL] Running incremental sync for softslite.workspace@gmail.com...
+[2026-04-12 21:25:38,654: WARNING/ForkPoolWorker-7] Error fetching emails: command SEARCH illegal in state AUTH, only allowed in states SELECTED
+[2026-04-12 21:25:38,664: INFO/ForkPoolWorker-7]     [STEP 1: OK] Incremental sync finished.
+[2026-04-12 21:25:38,665: INFO/ForkPoolWorker-7]     [STEP 2: HISTORICAL] Running deep historical scan for softslite.workspace@gmail.com...
+[2026-04-12 21:26:45,532: WARNING/ForkPoolWorker-7] Error fetching emails: command SEARCH illegal in state AUTH, only allowed in states SELECTED
+[2026-04-12 21:26:45,533: INFO/ForkPoolWorker-7]     [STEP 2: OK] Historical sync finished.
+[2026-04-12 21:26:45,543: INFO/ForkPoolWorker-7] <<< [SYNC_SESSION: FINAL] Full sync cycle completed for softslite.workspace@gmail.com. Status: COMPLETED.
+[2026-04-12 21:26:45,547: INFO/ForkPoolWorker-7] Task modules.communication_hub.tasks.full_initial_sync_task[768d200b-416f-4ba2-8184-0abcad0b1273] succeeded in 104.1161474670007s: None
+
+[2026-04-12 21:44:56,468: INFO/MainProcess] Celery logging initialized. Writing to /app/celery-logs/celery.log
+[2026-04-12 21:44:59,627: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-12 21:44:59,697: INFO/MainProcess] Connected to redis://redis:6379/0
+[2026-04-12 21:44:59,701: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-12 21:44:59,717: INFO/MainProcess] mingle: searching for neighbors
+[2026-04-12 21:45:00,749: INFO/MainProcess] mingle: all alone
+[2026-04-12 21:45:00,776: INFO/MainProcess] celery@d65a0d55b83b ready.
+[2026-04-12 21:47:12,702: INFO/MainProcess] Task modules.communication_hub.tasks.full_initial_sync_task[3e4789fd-eac0-4756-85d5-f9877d2876ba] received
+[2026-04-12 21:47:12,770: INFO/ForkPoolWorker-7] >>> [SYNC_SESSION: START] Initiating full sync for softslite.workspace@gmail.com
+[2026-04-12 21:47:12,797: INFO/ForkPoolWorker-7] --- [SYNC_SESSION: MID] Sync status set to 'syncing' for softslite.workspace@gmail.com
+[2026-04-12 21:47:12,798: INFO/ForkPoolWorker-7]     [STEP 1: INCREMENTAL] Syncing INBOX folder...
+[2026-04-12 21:47:55,453: INFO/ForkPoolWorker-7]     [STEP 1: INCREMENTAL] Syncing SENT folder...
+[2026-04-12 21:48:04,689: INFO/ForkPoolWorker-7]     [STEP 1: OK] Incremental sync finished for all core folders.
+[2026-04-12 21:48:04,690: INFO/ForkPoolWorker-7]     [STEP 2: HISTORICAL] Syncing INBOX folder (deep scan)...
+[2026-04-12 21:48:53,696: INFO/ForkPoolWorker-7]     [STEP 2: HISTORICAL] Syncing SENT folder (deep scan)...
+[2026-04-12 21:49:03,151: INFO/ForkPoolWorker-7]     [STEP 2: OK] Historical sync finished for all core folders.
+[2026-04-12 21:49:03,160: INFO/ForkPoolWorker-7] <<< [SYNC_SESSION: FINAL] Full sync cycle completed for softslite.workspace@gmail.com. Status: COMPLETED.
+[2026-04-12 21:49:03,171: INFO/ForkPoolWorker-7] Task modules.communication_hub.tasks.full_initial_sync_task[3e4789fd-eac0-4756-85d5-f9877d2876ba] succeeded in 110.47875710100016s: None
+
+
+[]
+
+[2026-04-12 22:25:10,785: INFO/MainProcess] Task modules.communication_hub.tasks.full_initial_sync_task[f71bce03-4739-4ec9-8894-2a7d8db40f5d] received
+[2026-04-12 22:25:11,751: INFO/ForkPoolWorker-7] >>> [SYNC_SESSION: START] Initiating full sync for softslite.workspace@gmail.com
+[2026-04-12 22:25:11,813: INFO/ForkPoolWorker-7] --- [SYNC_SESSION: MID] Sync status set to 'syncing' for softslite.workspace@gmail.com
+[2026-04-12 22:25:11,816: INFO/ForkPoolWorker-7]     [STEP 1: INCREMENTAL] Syncing INBOX folder...
+[2026-04-12 22:25:37,245: INFO/ForkPoolWorker-7]     [STEP 1: INCREMENTAL] Syncing SENT folder...
+[2026-04-12 22:25:47,645: INFO/ForkPoolWorker-7]     [STEP 1: OK] Incremental sync finished for all core folders.
+[2026-04-12 22:25:47,650: INFO/ForkPoolWorker-7]     [STEP 2: HISTORICAL] Syncing INBOX folder (deep scan)...
+[2026-04-12 22:26:34,264: INFO/ForkPoolWorker-7]     [STEP 2: HISTORICAL] Syncing SENT folder (deep scan)...
+[2026-04-12 22:26:51,162: INFO/ForkPoolWorker-7]     [STEP 2: OK] Historical sync finished for all core folders.
+[2026-04-12 22:26:51,179: INFO/ForkPoolWorker-7] <<< [SYNC_SESSION: FINAL] Full sync cycle completed for softslite.workspace@gmail.com. Status: COMPLETED.
+[2026-04-12 22:26:51,243: INFO/ForkPoolWorker-7] Task modules.communication_hub.tasks.full_initial_sync_task[f71bce03-4739-4ec9-8894-2a7d8db40f5d] succeeded in 100.20971056000053s: None
+[2026-04-12 22:30:56,889: INFO/MainProcess] Celery logging initialized. Writing to /app/celery-logs/celery.log
+[2026-04-12 22:30:56,907: INFO/MainProcess] Celery logging initialized. Writing to /app/celery-logs/celery.log
+[2026-04-12 22:30:56,908: INFO/MainProcess] beat: Starting...
+[2026-04-12 22:31:04,263: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-12 22:31:04,314: INFO/MainProcess] Connected to redis://redis:6379/0
+[2026-04-12 22:31:04,318: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-12 22:31:04,448: INFO/MainProcess] mingle: searching for neighbors
+[2026-04-12 22:31:05,483: INFO/MainProcess] mingle: all alone
+[2026-04-12 22:31:05,496: INFO/MainProcess] celery@bf54f238ad26 ready.
+[2026-04-12 22:56:26,258: INFO/MainProcess] Task modules.candidate_etl.tasks.run_candidate_extraction_pipeline[6dfb1a06-e962-4bed-a31e-1c6e30cf6f00] received
+[2026-04-12 22:56:26,525: INFO/ForkPoolWorker-7] >>> [EXTRACT_PIPELINE: START] Background process initiated.
+[2026-04-12 22:56:27,266: INFO/ForkPoolWorker-7] --- [EXTRACT_PIPELINE: MID] Found 1 active accounts with ETL enabled.
+[2026-04-12 22:56:27,285: INFO/ForkPoolWorker-7] --- [EXTRACT_PIPELINE: MID] Processing Account: dipanshu.saini@metricvibes.com
+[2026-04-12 22:56:27,285: INFO/ForkPoolWorker-7]     [SYNC] Polling incremental updates for dipanshu.saini@metricvibes.com...
+[2026-04-12 22:56:42,689: WARNING/ForkPoolWorker-7] Failed to select folder SENT for dipanshu.saini@metricvibes.com
+[2026-04-12 22:56:42,905: INFO/ForkPoolWorker-7]     [SYNC] Incremental sync successful for dipanshu.saini@metricvibes.com.
+[2026-04-12 22:56:42,910: INFO/ForkPoolWorker-7]     [LOCAL_SCAN] Checking database for unprocessed resumes for dipanshu.saini@metricvibes.com...
+[2026-04-12 22:56:44,311: INFO/ForkPoolWorker-7]     [LOCAL_SCAN] Found 73 unprocessed messages with attachments.
+[2026-04-12 22:56:44,570: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 957 (UID: 2202)
+[2026-04-12 22:56:44,881: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 957.
+[2026-04-12 22:56:44,905: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 982 (UID: 2177)
+[2026-04-12 22:56:45,055: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 982.
+[2026-04-12 22:56:45,076: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 988 (UID: 2171)
+[2026-04-12 22:56:45,136: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 988.
+[2026-04-12 22:56:45,158: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 989 (UID: 2170)
+[2026-04-12 22:56:45,189: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 989.
+[2026-04-12 22:56:45,191: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1014 (UID: 2145)
+[2026-04-12 22:56:45,212: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1014.
+[2026-04-12 22:56:45,214: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1015 (UID: 2144)
+[2026-04-12 22:56:45,224: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1015.
+[2026-04-12 22:56:45,226: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1017 (UID: 2142)
+[2026-04-12 22:56:45,240: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1017.
+[2026-04-12 22:56:45,243: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1020 (UID: 2139)
+[2026-04-12 22:56:45,253: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1020.
+[2026-04-12 22:56:45,255: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1032 (UID: 2127)
+[2026-04-12 22:56:45,261: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1032.
+[2026-04-12 22:56:45,263: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1038 (UID: 2121)
+[2026-04-12 22:56:45,271: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1038.
+[2026-04-12 22:56:45,282: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1046 (UID: 2113)
+[2026-04-12 22:56:45,293: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1046.
+[2026-04-12 22:56:45,296: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1064 (UID: 2095)
+[2026-04-12 22:56:45,305: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1064.
+[2026-04-12 22:56:45,311: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1073 (UID: 2086)
+[2026-04-12 22:56:45,317: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1073.
+[2026-04-12 22:56:45,320: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1076 (UID: 2083)
+[2026-04-12 22:56:45,336: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Found 1 PDF attachments.
+[2026-04-12 22:56:45,355: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from Dipanshu Saini Python Developer Feb26.pdf...
+[2026-04-12 22:56:46,648: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:46,799: INFO/ForkPoolWorker-7]       [DATABASE: DB_SAVE] Saving candidate D I PA N S H U   S A I N I to DB...
+[2026-04-12 22:56:48,758: INFO/ForkPoolWorker-7]       [DATABASE: OK] Processed candidate: contactmedipanshu@gmail.com (Status: DUPLICATE)
+[2026-04-12 22:56:48,862: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1087 (UID: 2072)
+[2026-04-12 22:56:48,867: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1087.
+[2026-04-12 22:56:48,869: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1088 (UID: 2071)
+[2026-04-12 22:56:48,877: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1088.
+[2026-04-12 22:56:48,878: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1089 (UID: 2070)
+[2026-04-12 22:56:48,883: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1089.
+[2026-04-12 22:56:48,884: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1090 (UID: 2069)
+[2026-04-12 22:56:48,891: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1090.
+[2026-04-12 22:56:48,892: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1093 (UID: 2066)
+[2026-04-12 22:56:48,898: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1093.
+[2026-04-12 22:56:48,899: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1105 (UID: 2054)
+[2026-04-12 22:56:48,907: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Found 1 PDF attachments.
+[2026-04-12 22:56:48,912: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from dhi_69a6f2e713b134.32423887.pdf...
+[2026-04-12 22:56:49,802: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:49,821: INFO/ForkPoolWorker-7]       [DATABASE: DB_SAVE] Saving candidate 0em[ to DB...
+[2026-04-12 22:56:50,211: INFO/ForkPoolWorker-7]       [DATABASE: OK] Processed candidate: vishantdhiman40@gmail.com (Status: SUCCESS)
+[2026-04-12 22:56:50,223: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1106 (UID: 2053)
+[2026-04-12 22:56:50,229: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Found 1 PDF attachments.
+[2026-04-12 22:56:50,233: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from dhi_69a6f2e713b134.32423887.pdf...
+[2026-04-12 22:56:50,751: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:50,764: INFO/ForkPoolWorker-7]       [DATABASE: DB_SAVE] Saving candidate 0em[ to DB...
+[2026-04-12 22:56:50,808: INFO/ForkPoolWorker-7]       [DATABASE: OK] Processed candidate: vishantdhiman40@gmail.com (Status: DUPLICATE)
+[2026-04-12 22:56:50,816: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1110 (UID: 2049)
+[2026-04-12 22:56:50,821: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1110.
+[2026-04-12 22:56:50,822: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1112 (UID: 2047)
+[2026-04-12 22:56:50,828: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1112.
+[2026-04-12 22:56:50,829: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1118 (UID: 2041)
+[2026-04-12 22:56:50,834: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1118.
+[2026-04-12 22:56:50,835: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1123 (UID: 2036)
+[2026-04-12 22:56:50,838: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1123.
+[2026-04-12 22:56:50,839: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1127 (UID: 2032)
+[2026-04-12 22:56:50,845: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1127.
+[2026-04-12 22:56:50,846: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1135 (UID: 2024)
+[2026-04-12 22:56:50,852: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1135.
+[2026-04-12 22:56:50,854: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1136 (UID: 2023)
+[2026-04-12 22:56:50,858: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1136.
+[2026-04-12 22:56:50,859: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1137 (UID: 2022)
+[2026-04-12 22:56:50,865: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1137.
+[2026-04-12 22:56:50,866: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1149 (UID: 2010)
+[2026-04-12 22:56:50,872: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1149.
+[2026-04-12 22:56:50,873: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1157 (UID: 1987)
+[2026-04-12 22:56:50,878: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1157.
+[2026-04-12 22:56:50,879: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1174 (UID: 1970)
+[2026-04-12 22:56:50,885: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1174.
+[2026-04-12 22:56:50,886: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1177 (UID: 1967)
+[2026-04-12 22:56:50,892: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1177.
+[2026-04-12 22:56:50,893: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1182 (UID: 1962)
+[2026-04-12 22:56:50,905: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1182.
+[2026-04-12 22:56:50,907: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1183 (UID: 1961)
+[2026-04-12 22:56:50,913: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1183.
+[2026-04-12 22:56:50,916: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1184 (UID: 1960)
+[2026-04-12 22:56:50,923: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1184.
+[2026-04-12 22:56:50,924: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1185 (UID: 1959)
+[2026-04-12 22:56:50,930: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1185.
+[2026-04-12 22:56:50,931: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1189 (UID: 1955)
+[2026-04-12 22:56:50,936: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1189.
+[2026-04-12 22:56:50,937: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1195 (UID: 1949)
+[2026-04-12 22:56:50,942: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1195.
+[2026-04-12 22:56:50,943: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1200 (UID: 1944)
+[2026-04-12 22:56:50,948: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1200.
+[2026-04-12 22:56:50,950: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1203 (UID: 1941)
+[2026-04-12 22:56:50,956: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1203.
+[2026-04-12 22:56:50,957: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1204 (UID: 1940)
+[2026-04-12 22:56:50,961: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1204.
+[2026-04-12 22:56:50,963: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1205 (UID: 1939)
+[2026-04-12 22:56:50,968: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1205.
+[2026-04-12 22:56:50,970: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1224 (UID: 1920)
+[2026-04-12 22:56:50,975: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1224.
+[2026-04-12 22:56:50,976: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1237 (UID: 1907)
+[2026-04-12 22:56:50,982: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1237.
+[2026-04-12 22:56:50,983: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1246 (UID: 1898)
+[2026-04-12 22:56:50,987: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1246.
+[2026-04-12 22:56:50,988: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1248 (UID: 1896)
+[2026-04-12 22:56:50,994: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1248.
+[2026-04-12 22:56:50,995: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1250 (UID: 1894)
+[2026-04-12 22:56:51,000: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1250.
+[2026-04-12 22:56:51,001: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1267 (UID: 1877)
+[2026-04-12 22:56:51,005: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1267.
+[2026-04-12 22:56:51,007: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1268 (UID: 1876)
+[2026-04-12 22:56:51,012: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1268.
+[2026-04-12 22:56:51,013: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1271 (UID: 1873)
+[2026-04-12 22:56:51,017: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1271.
+[2026-04-12 22:56:51,019: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1275 (UID: 1869)
+[2026-04-12 22:56:51,023: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1275.
+[2026-04-12 22:56:51,024: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1283 (UID: 1861)
+[2026-04-12 22:56:51,029: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1283.
+[2026-04-12 22:56:51,030: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1284 (UID: 1860)
+[2026-04-12 22:56:51,033: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1284.
+[2026-04-12 22:56:51,034: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1286 (UID: 1858)
+[2026-04-12 22:56:51,037: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1286.
+[2026-04-12 22:56:51,037: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1287 (UID: 1857)
+[2026-04-12 22:56:51,040: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1287.
+[2026-04-12 22:56:51,041: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1288 (UID: 1856)
+[2026-04-12 22:56:51,046: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1288.
+[2026-04-12 22:56:51,047: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1296 (UID: 1848)
+[2026-04-12 22:56:51,051: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1296.
+[2026-04-12 22:56:51,052: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1299 (UID: 1845)
+[2026-04-12 22:56:51,057: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1299.
+[2026-04-12 22:56:51,059: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1309 (UID: 1835)
+[2026-04-12 22:56:51,064: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1309.
+[2026-04-12 22:56:51,066: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1317 (UID: 1827)
+[2026-04-12 22:56:51,083: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1317.
+[2026-04-12 22:56:51,086: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1318 (UID: 1826)
+[2026-04-12 22:56:51,096: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1318.
+[2026-04-12 22:56:51,098: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1332 (UID: 1812)
+[2026-04-12 22:56:51,104: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1332.
+[2026-04-12 22:56:51,107: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1368 (UID: 1776)
+[2026-04-12 22:56:51,120: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Found 8 PDF attachments.
+[2026-04-12 22:56:51,126: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from Arihant_Jain_DevOps_Engineer.pdf.pdf...
+[2026-04-12 22:56:51,452: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:51,467: INFO/ForkPoolWorker-7]       [DATABASE: DB_SAVE] Saving candidate Arihant Jain to DB...
+[2026-04-12 22:56:51,567: INFO/ForkPoolWorker-7]       [DATABASE: OK] Processed candidate: jainarihant1309@gmail.com (Status: SUCCESS)
+[2026-04-12 22:56:51,576: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from Arnab_Baruah_Resume.pdf...
+[2026-04-12 22:56:51,863: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:51,893: INFO/ForkPoolWorker-7]       [DATABASE: DB_SAVE] Saving candidate Arnab Baruah to DB...
+[2026-04-12 22:56:52,039: INFO/ForkPoolWorker-7]       [DATABASE: OK] Processed candidate: baruaharnab769@gmail.com (Status: SUCCESS)
+[2026-04-12 22:56:52,045: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from HARSHITCV--.pdf...
+[2026-04-12 22:56:52,742: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:52,754: INFO/ForkPoolWorker-7]       [DATABASE: DB_SAVE] Saving candidate (AWS, AZURE CLOUD)/ Devops Engineer to DB...
+[2026-04-12 22:56:52,840: INFO/ForkPoolWorker-7]       [DATABASE: OK] Processed candidate: harshitsrivastava651@gmail.com (Status: SUCCESS)
+[2026-04-12 22:56:52,847: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from Kartik Kohapare DevOps Resume.pdf...
+[2026-04-12 22:56:53,267: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:53,278: INFO/ForkPoolWorker-7]       [DATABASE: DB_SAVE] Saving candidate Kartik Kohapare to DB...
+[2026-04-12 22:56:53,307: INFO/ForkPoolWorker-7]       [DATABASE: OK] Processed candidate: kartikkohapare527@gmail.com (Status: SUCCESS)
+[2026-04-12 22:56:53,311: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from Resume DevOps Aniket updated.pdf...
+[2026-04-12 22:56:53,816: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:53,845: INFO/ForkPoolWorker-7]       [DATABASE: DB_SAVE] Saving candidate Aniket Balaram Bhalerao to DB...
+[2026-04-12 22:56:53,875: INFO/ForkPoolWorker-7]       [DATABASE: OK] Processed candidate: bhaleraoaniket3141@gmail.com (Status: SUCCESS)
+[2026-04-12 22:56:53,879: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from resume.in-2.pdf...
+[2026-04-12 22:56:54,201: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:54,207: WARNING/ForkPoolWorker-7]       [PARSE: FAIL] Incomplete data (Email/Phone missing) for resume.in-2.pdf.
+[2026-04-12 22:56:54,208: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from Riya_Resume.pdf...
+[2026-04-12 22:56:54,427: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:54,431: INFO/ForkPoolWorker-7]       [DATABASE: DB_SAVE] Saving candidate Riya to DB...
+[2026-04-12 22:56:54,472: INFO/ForkPoolWorker-7]       [DATABASE: OK] Processed candidate: riyagoel064@gmail.com (Status: SUCCESS)
+[2026-04-12 22:56:54,489: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from Vishal_Lilhare_Cloud_DevOps_Engineer.pdf...
+[2026-04-12 22:56:54,571: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:54,579: INFO/ForkPoolWorker-7]       [DATABASE: DB_SAVE] Saving candidate Vishal Lilhare to DB...
+[2026-04-12 22:56:54,660: INFO/ForkPoolWorker-7]       [DATABASE: OK] Processed candidate: vishallilhare38@gmail.com (Status: SUCCESS)
+[2026-04-12 22:56:54,669: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1380 (UID: 1764)
+[2026-04-12 22:56:54,673: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1380.
+[2026-04-12 22:56:54,675: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1384 (UID: 1760)
+[2026-04-12 22:56:54,680: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1384.
+[2026-04-12 22:56:54,682: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1401 (UID: 1743)
+[2026-04-12 22:56:54,688: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1401.
+[2026-04-12 22:56:54,689: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1416 (UID: 1728)
+[2026-04-12 22:56:54,694: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1416.
+[2026-04-12 22:56:54,696: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1417 (UID: 1727)
+[2026-04-12 22:56:54,701: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1417.
+[2026-04-12 22:56:54,702: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1419 (UID: 1725)
+[2026-04-12 22:56:54,708: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1419.
+[2026-04-12 22:56:54,711: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1423 (UID: 1721)
+[2026-04-12 22:56:54,716: INFO/ForkPoolWorker-7]     [MSG_SKIP] No PDF attachments found for Message 1423.
+[2026-04-12 22:56:54,718: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1440 (UID: 1704)
+[2026-04-12 22:56:54,734: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Found 1 PDF attachments.
+[2026-04-12 22:56:54,739: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from Engagement ID- ENG-MTVIBES-2025-01.pdf...
+[2026-04-12 22:56:56,453: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:56:56,472: WARNING/ForkPoolWorker-7]       [PARSE: FAIL] Incomplete data (Email/Phone missing) for Engagement ID- ENG-MTVIBES-2025-01.pdf.
+[2026-04-12 22:56:56,474: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Handling Message ID: 1441 (UID: 1703)
+[2026-04-12 22:56:56,481: INFO/ForkPoolWorker-7]     [MSG_PROCESS] Found 1 PDF attachments.
+[2026-04-12 22:56:56,485: INFO/ForkPoolWorker-7]       [PARSE: START] Extracting text from SoW - Metric Vibes.pdf...
+[2026-04-12 22:57:00,955: INFO/ForkPoolWorker-7]       [PARSE: MID] Parsing candidate data from text...
+[2026-04-12 22:57:00,971: WARNING/ForkPoolWorker-7]       [PARSE: FAIL] Incomplete data (Email/Phone missing) for SoW - Metric Vibes.pdf.
+[2026-04-12 22:57:00,972: INFO/ForkPoolWorker-7] --- [EXTRACT_PIPELINE: MID] Finished processing Account: dipanshu.saini@metricvibes.com
+[2026-04-12 22:57:00,973: INFO/ForkPoolWorker-7] <<< [EXTRACT_PIPELINE: FINAL] Background process completed successfully.
+[2026-04-12 22:57:00,984: INFO/ForkPoolWorker-7] Task modules.candidate_etl.tasks.run_candidate_extraction_pipeline[6dfb1a06-e962-4bed-a31e-1c6e30cf6f00] succeeded in 34.5495233849997s: None
+[2026-04-14 21:31:24,393: INFO/MainProcess] Celery logging initialized. Writing to /app/celery-logs/celery.log
+[2026-04-14 21:31:24,393: INFO/MainProcess] Celery logging initialized. Writing to /app/celery-logs/celery.log
+[2026-04-14 21:31:24,479: INFO/MainProcess] beat: Starting...
+[2026-04-14 21:31:28,443: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-14 21:31:29,253: INFO/MainProcess] Connected to redis://redis:6379/0
+[2026-04-14 21:31:29,303: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-14 21:31:29,386: INFO/MainProcess] mingle: searching for neighbors
+[2026-04-14 21:31:30,423: INFO/MainProcess] mingle: all alone
+[2026-04-14 21:31:30,489: INFO/MainProcess] celery@7cf7718b78e3 ready.
+[2026-04-14 21:38:44,815: INFO/MainProcess] Celery logging initialized. Writing to /app/celery-logs/celery.log
+[2026-04-14 21:38:44,940: INFO/MainProcess] Celery logging initialized. Writing to /app/celery-logs/celery.log
+[2026-04-14 21:38:44,941: INFO/MainProcess] beat: Starting...
+[2026-04-14 21:38:46,099: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-14 21:38:46,209: INFO/MainProcess] Connected to redis://redis:6379/0
+[2026-04-14 21:38:46,211: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-14 21:38:46,214: INFO/MainProcess] mingle: searching for neighbors
+[2026-04-14 21:38:47,234: INFO/MainProcess] mingle: all alone
+[2026-04-14 21:38:47,267: INFO/MainProcess] celery@ff4bfd77f188 ready.
+[2026-04-15 13:42:34,512: INFO/MainProcess] Celery logging initialized. Writing to /app/celery-logs/celery.log
+[2026-04-15 13:42:34,513: INFO/MainProcess] Celery logging initialized. Writing to /app/celery-logs/celery.log
+[2026-04-15 13:42:34,514: INFO/MainProcess] beat: Starting...
+[2026-04-15 13:42:36,134: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-15 13:42:36,288: INFO/MainProcess] Connected to redis://redis:6379/0
+[2026-04-15 13:42:36,292: WARNING/MainProcess] /usr/local/lib/python3.12/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-04-15 13:42:36,300: INFO/MainProcess] mingle: searching for neighbors
+[2026-04-15 13:42:37,321: INFO/MainProcess] mingle: all alone
+[2026-04-15 13:42:37,350: INFO/MainProcess] celery@8fb71a83a0a0 ready.

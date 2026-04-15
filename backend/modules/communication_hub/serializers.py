@@ -24,7 +24,7 @@ class MailAccountSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'display_name', 'email_address', 'provider',
             'imap_host', 'imap_port', 'smtp_host', 'smtp_port',
-            'is_active', 'last_sync_at', 'password'
+            'is_active', 'is_etl_enabled', 'sync_status', 'last_sync_at', 'password'
         ]
         extra_kwargs = {
             'password': {'write_only': True}

@@ -70,6 +70,7 @@ class IngestionLog(models.Model):
     
     account_email = models.EmailField()
     email_uid = models.CharField(max_length=100)
+    message = models.ForeignKey('communication_hub.MailMessage', on_delete=models.SET_NULL, null=True, blank=True, related_name='etl_logs')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     error_message = models.TextField(blank=True)
     processed_at = models.DateTimeField(auto_now_add=True)
