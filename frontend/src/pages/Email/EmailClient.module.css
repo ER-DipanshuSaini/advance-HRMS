@@ -517,7 +517,110 @@
   font-size: 0.75rem;
   font-weight: 500;
   color: #94a3b8;
-  margin-left: 0.5rem;
+}
+
+.syncMetaInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.backgroundSyncBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #f59e0b;
+  background: #fffbeb;
+  padding: 3px 10px;
+  border-radius: 20px;
+  width: fit-content;
+  border: 1px solid #fef3c7;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── MODAL INITIALIZATION STATE ──────────────── */
+.syncLoadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  min-height: 300px;
+}
+
+.syncLoadingIcon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.successIcon {
+  color: #10b981;
+  z-index: 1;
+}
+
+.pulseRing {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #10b98115;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.syncLoadingTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+}
+
+.syncLoadingMsg {
+  font-size: 0.9375rem;
+  color: #64748b;
+  line-height: 1.5;
+  max-width: 320px;
+  margin-bottom: 2rem;
+}
+
+.inlineLoader {
+  width: 100%;
+  max-width: 240px;
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.inlineLoaderBar {
+  position: absolute;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  border-radius: 10px;
+  animation: slideLoader 1.5s infinite ease-in-out;
+}
+
+@keyframes slideLoader {
+  0% { left: -40%; }
+  100% { left: 100%; }
 }
 
 /* Search */

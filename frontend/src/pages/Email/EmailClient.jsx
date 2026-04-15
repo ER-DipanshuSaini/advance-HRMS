@@ -224,7 +224,7 @@ function ComposeWindow({ onClose, onSend, onSaveDraft, onToast, activeAccount, r
     const timer = setInterval(() => {
       const current = { to, cc, bcc, subject, body };
       const hasChanged = JSON.stringify(current) !== JSON.stringify(lastContent.current);
-      
+
       if (hasChanged || (replyTo?.isDraft && !lastSaved)) {
         handleDraftAuto();
       }
@@ -240,7 +240,7 @@ function ComposeWindow({ onClose, onSend, onSaveDraft, onToast, activeAccount, r
       bcc: bcc.join(', '),
       subject, body,
       is_draft: true,
-      draft_id: replyTo?.id || null 
+      draft_id: replyTo?.id || null
     }, true);
     setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     setIsSaving(false);
@@ -269,7 +269,7 @@ function ComposeWindow({ onClose, onSend, onSaveDraft, onToast, activeAccount, r
       bcc: bcc.join(', '),
       subject, body,
       is_draft: true,
-      draft_id: replyTo?.id || null 
+      draft_id: replyTo?.id || null
     });
     onClose();
   };
@@ -287,8 +287,8 @@ function ComposeWindow({ onClose, onSend, onSaveDraft, onToast, activeAccount, r
         <div className={styles.composeHeadLeft}>
           <Pencil size={14} color="#ffffff" />
           <span style={{ color: '#ffffff' }}>
-            {replyTo?.isDraft ? `Draft — ${replyTo.subject || '(No Subject)'}` : 
-             replyTo ? `Reply — ${replyTo.subject}` : 'New Message'}
+            {replyTo?.isDraft ? `Draft — ${replyTo.subject || '(No Subject)'}` :
+              replyTo ? `Reply — ${replyTo.subject}` : 'New Message'}
           </span>
         </div>
         <div className={styles.composeHeadActions}>
@@ -402,6 +402,9 @@ function AccountConfigModal({ onClose, onSave, onToast, editAccount = null }) {
     { id: 'custom', label: 'Custom SMTP/IMAP', imap_host: '', smtp_host: '' },
   ];
 
+  const [isSyncingInitial, setIsSyncingInitial] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
   const selectProvider = (p) => {
     setConfig(c => ({ ...c, provider: p.id, imap_host: p.imap_host, smtp_host: p.smtp_host }));
     setStep(2);
@@ -417,7 +420,9 @@ function AccountConfigModal({ onClose, onSave, onToast, editAccount = null }) {
         body: JSON.stringify(config)
       });
       if (res.success) {
-        onSave(config);
+        setIsSuccess(true);
+        setIsSyncingInitial(true);
+        await onSave(config);
       } else {
         setValidationError(res.error || 'Validation failed');
       }
@@ -425,6 +430,7 @@ function AccountConfigModal({ onClose, onSave, onToast, editAccount = null }) {
       setValidationError(err.message || 'Connection error. Check settings.');
     } finally {
       setIsValidating(false);
+      // We don't set setIsSyncingInitial(false) here because if onSave finishes, modal closes anyway
     }
   };
 
@@ -452,7 +458,21 @@ function AccountConfigModal({ onClose, onSave, onToast, editAccount = null }) {
         </div>
 
         <div className={styles.configBody}>
-          {step === 1 ? (
+          {isSyncingInitial ? (
+            <div className={styles.syncLoadingState}>
+              <div className={styles.syncLoadingIcon}>
+                <div className={styles.pulseRing} />
+                <ShieldCheck size={40} className={styles.successIcon} />
+              </div>
+              <h4 className={styles.syncLoadingTitle}>Validation Success!</h4>
+              <p className={styles.syncLoadingMsg}>
+                Your credentials are secure. We're now fetching your some of emails to get you started...
+              </p>
+              <div className={styles.inlineLoader}>
+                <div className={styles.inlineLoaderBar} />
+              </div>
+            </div>
+          ) : step === 1 ? (
             <div className={styles.providerGrid}>
               {PROVIDERS.map(p => {
                 const brandColor = PROVIDER_ICONS[p.id]?.color || '#f1f5f9';
@@ -495,9 +515,9 @@ function AccountConfigModal({ onClose, onSave, onToast, editAccount = null }) {
               </div>
 
               {validationError && (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }} 
-                  animate={{ opacity: 1, x: 0 }} 
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
                   className={styles.configError}
                 >
                   <AlertCircle size={14} /> <span>{validationError}</span>
@@ -507,19 +527,21 @@ function AccountConfigModal({ onClose, onSave, onToast, editAccount = null }) {
           )}
         </div>
 
-        <div className={styles.configFooter}>
-          {step === 2 && <Button variant="outline" onClick={() => setStep(1)}>Back</Button>}
-          <span style={{ flex: 1 }} />
-          {step === 2 && (
-            <Button
-              variant="primary"
-              loading={isValidating}
-              onClick={handleValidate}
-            >
-              {isValidating ? 'Validating...' : 'Validate & Connect'}
-            </Button>
-          )}
-        </div>
+        {!isSyncingInitial && (
+          <div className={styles.configFooter}>
+            {step === 2 && <Button variant="outline" onClick={() => setStep(1)}>Back</Button>}
+            <span style={{ flex: 1 }} />
+            {step === 2 && (
+              <Button
+                variant="primary"
+                loading={isValidating}
+                onClick={handleValidate}
+              >
+                {isValidating ? 'Validating...' : 'Validate & Connect'}
+              </Button>
+            )}
+          </div>
+        )}
       </motion.div>
     </div>
   );
@@ -565,11 +587,11 @@ function AccountSwitcher({ accounts, activeId, onSwitch, onAdd, onEdit, onRemove
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
             <div className={styles.dropdownSection}>Manage Accounts</div>
-            
+
             <div className={styles.accountsList}>
               {accounts.map(acc => (
-                <div 
-                  key={acc.id} 
+                <div
+                  key={acc.id}
                   className={`${styles.dropdownAccountRow} ${acc.id === activeId ? styles.dropdownAccountActive : ''}`}
                   onClick={() => { onSwitch(acc.id); setOpen(false); }}
                 >
@@ -592,7 +614,7 @@ function AccountSwitcher({ accounts, activeId, onSwitch, onAdd, onEdit, onRemove
             </div>
 
             <div className={styles.dropdownDivider} />
-            
+
             <button className={styles.dropdownAddBtn} onClick={() => { onAdd(); setOpen(false); }}>
               <Plus size={16} /> Add another account
             </button>
@@ -763,8 +785,8 @@ function EmailView({ email, folder, onBack, onReply, onReplyAll, onForward, onTr
 
       {/* Sender meta */}
       <div className={styles.viewMeta}>
-        <div 
-          className={`${styles.emailAvatar} ${styles.avatarLg}`} 
+        <div
+          className={`${styles.emailAvatar} ${styles.avatarLg}`}
           style={{ background: getAvatarColor(senderName), color: 'rgba(0,0,0,0.7)' }}
         >
           {avatarLetter}
@@ -793,11 +815,11 @@ function EmailView({ email, folder, onBack, onReply, onReplyAll, onForward, onTr
           </div>
           <div className={styles.attachGrid}>
             {email.attachments.map(att => (
-              <a 
-                key={att.id} 
-                href={att.file} 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                key={att.id}
+                href={att.file}
+                target="_blank"
+                rel="noopener noreferrer"
                 className={styles.viewAttachCard}
                 title={`Download ${att.file_name}`}
               >
@@ -837,7 +859,7 @@ function EmailView({ email, folder, onBack, onReply, onReplyAll, onForward, onTr
    MAIN EMAIL CLIENT
 ═══════════════════════════════════════════════════ */
 const AVATAR_COLORS = [
-  '#e0e7ff', '#fce7f3', '#fef3c7', '#d1fae5', 
+  '#e0e7ff', '#fce7f3', '#fef3c7', '#d1fae5',
   '#dbeafe', '#ede9fe', '#cffafe', '#fee2e2'
 ];
 
@@ -879,11 +901,19 @@ export default function EmailClient() {
 
   // Extraction feature
   const [extractionEnabled, setExtractionEnabled] = useState(false);
+  const [isUpdatingExtraction, setIsUpdatingExtraction] = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
 
-  const activeAccount = Array.isArray(accounts) 
+  const activeAccount = Array.isArray(accounts)
     ? accounts.find(a => a.id === activeAccountId) || null
     : null;
+
+  // Sync extraction state with active account
+  useEffect(() => {
+    if (activeAccount) {
+      setExtractionEnabled(!!activeAccount.is_etl_enabled);
+    }
+  }, [activeAccount?.id, activeAccount?.is_etl_enabled]);
 
   // ── API HANDLERS ──
 
@@ -892,7 +922,7 @@ export default function EmailClient() {
       const data = await apiClient(`${API_BASE}/accounts/`);
       const results = Array.isArray(data) ? data : (data?.results || []);
       setAccounts(results);
-      
+
       if (results.length > 0) {
         setConfigured(true);
         if (switchToNewId) {
@@ -927,7 +957,7 @@ export default function EmailClient() {
     try {
       await apiClient(`${API_BASE}/sync/${id}/`, { method: 'POST' });
       await fetchMessages();
-      await fetchAccounts(); 
+      await fetchAccounts();
       setToast({ message: 'Mailbox synced successfully.', type: 'success' });
     } catch (err) {
       setToast({ message: 'Sync failed. Check connection.', type: 'error' });
@@ -939,6 +969,17 @@ export default function EmailClient() {
   useEffect(() => {
     fetchAccounts();
   }, []);
+
+  useEffect(() => {
+    // Poll for account status if any account is syncing
+    const anySyncing = accounts.some(acc => acc.sync_status === 'syncing');
+    if (anySyncing) {
+      const timer = setInterval(() => {
+        fetchAccounts();
+      }, 5000);
+      return () => clearInterval(timer);
+    }
+  }, [accounts]);
 
   useEffect(() => {
     fetchMessages();
@@ -1021,7 +1062,7 @@ export default function EmailClient() {
       formData.append('subject', data.subject);
       formData.append('body', data.body);
       if (data.draft_id) formData.append('draft_id', data.draft_id);
-      
+
       if (data.attachments && data.attachments.length > 0) {
         data.attachments.forEach(file => {
           formData.append('attachments', file);
@@ -1050,7 +1091,7 @@ export default function EmailClient() {
     try {
       const method = data.draft_id ? 'PATCH' : 'POST';
       const endpoint = data.draft_id ? `${API_BASE}/messages/${data.draft_id}/` : `${API_BASE}/messages/`;
-      
+
       await apiClient(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -1082,14 +1123,16 @@ export default function EmailClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
       });
-      setShowConfigModal(false);
+
+      // Auto-trigger first sync and WAIT for it so modal shows progress
       await fetchAccounts(res.id);
-      
-      // Auto-trigger first sync
-      setToast({ message: 'Account connected! Fetching your inbox...', type: 'success' });
-      handleSync(res.id);
+      await handleSync(res.id);
+
+      setShowConfigModal(false);
+      setToast({ message: 'Account connected! Welcome to your new inbox.', type: 'success' });
     } catch (err) {
       setToast({ message: 'Failed to add account.', type: 'error' });
+      throw err; // Re-throw to let modal know it failed
     }
   };
 
@@ -1121,7 +1164,7 @@ export default function EmailClient() {
   const handleReply = (email) => { setReplyTo(email); setComposing(true); };
   const handleReplyAll = (email) => { setReplyTo({ ...email, isReplyAll: true }); setComposing(true); };
   const handleForward = (email) => { setReplyTo({ ...email, isForward: true }); setComposing(true); };
-  
+
   const handleTrash = async (email) => {
     try {
       if (folder === 'trash') {
@@ -1281,10 +1324,34 @@ export default function EmailClient() {
               <Button variant="outline" onClick={() => setShowExtractionModal(false)}>Cancel</Button>
               <Button
                 variant={extractionEnabled ? "danger" : "primary"}
-                onClick={() => {
-                  setExtractionEnabled(!extractionEnabled);
-                  setShowExtractionModal(false);
-                  setToast({ message: extractionEnabled ? 'Resume extraction deactivated.' : 'Resume extraction enabled!', type: 'success' });
+                loading={isUpdatingExtraction}
+                onClick={async () => {
+                  if (!activeAccountId) return;
+                  setIsUpdatingExtraction(true);
+                  try {
+                    const newValue = !extractionEnabled;
+                    await apiClient(`${API_BASE}/accounts/${activeAccountId}/`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ is_etl_enabled: newValue })
+                    });
+
+                    setExtractionEnabled(newValue);
+                    // Update local accounts state to keep it in sync
+                    setAccounts(prev => prev.map(acc =>
+                      acc.id === activeAccountId ? { ...acc, is_etl_enabled: newValue } : acc
+                    ));
+
+                    setShowExtractionModal(false);
+                    setToast({
+                      message: newValue ? 'Resume extraction enabled!' : 'Resume extraction deactivated.',
+                      type: 'success'
+                    });
+                  } catch (err) {
+                    setToast({ message: 'Failed to update extraction settings.', type: 'error' });
+                  } finally {
+                    setIsUpdatingExtraction(false);
+                  }
                 }}
               >
                 {extractionEnabled ? 'Pause Extraction' : 'Enable Extraction'}
@@ -1300,10 +1367,10 @@ export default function EmailClient() {
             <AccountSwitcher
               accounts={accounts}
               activeId={activeAccountId}
-              onSwitch={id => { 
-                setActiveAccountId(id); 
-                setSelectedEmail(null); 
-                setFolder('inbox'); 
+              onSwitch={id => {
+                setActiveAccountId(id);
+                setSelectedEmail(null);
+                setFolder('inbox');
                 setCurrentPage(1);
               }}
               onAdd={() => { setEditingAccount(null); setShowConfigModal(true); }}
@@ -1357,9 +1424,17 @@ export default function EmailClient() {
                   <span className={styles.folderCount}>{filteredEmails.length}</span>
                 </h2>
                 {activeAccount && (
-                  <span className={styles.lastSyncText}>
-                    Last sync: {formatLastSync(activeAccount.last_sync_at)}
-                  </span>
+                  <div className={styles.syncMetaInfo}>
+                    <span className={styles.lastSyncText}>
+                      Last sync: {formatLastSync(activeAccount.last_sync_at)}
+                    </span>
+                    {activeAccount.sync_status === 'syncing' && (
+                      <span className={styles.backgroundSyncBadge}>
+                        <RefreshCw size={10} className={styles.spinning} />
+                        Syncing Historical Emails...
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
               <div className={styles.toolbarRight}>
@@ -1387,11 +1462,12 @@ export default function EmailClient() {
                 </button>
                 <button
                   className={styles.toolbarIconBtn}
-                  title="Refresh & Sync"
+                  title={activeAccount?.sync_status === 'syncing' ? "Sync in progress" : "Refresh & Sync"}
                   onClick={() => handleSync()}
-                  disabled={isSyncing}
+                  disabled={isSyncing || activeAccount?.sync_status === 'syncing'}
+                  style={{ opacity: (isSyncing || activeAccount?.sync_status === 'syncing') ? 0.5 : 1 }}
                 >
-                  <RefreshCw size={14} className={isSyncing ? styles.spinning : ''} />
+                  <RefreshCw size={14} className={(isSyncing || activeAccount?.sync_status === 'syncing') ? styles.spinning : ''} />
                 </button>
               </div>
             </div>
@@ -1420,8 +1496,8 @@ export default function EmailClient() {
                         )}
                       </div>
                       <p className={styles.emptyTitle}>
-                        {isSyncing 
-                          ? 'Fetching your inbox for the first time...' 
+                        {isSyncing
+                          ? 'Fetching your inbox for the first time...'
                           : (searchQuery || hasActiveFilters ? 'No emails match search' : `No messages in ${folder}`)}
                       </p>
                       {isSyncing && <p className={styles.emptySub}>This may take a moment depending on your connection.</p>}
@@ -1470,11 +1546,11 @@ export default function EmailClient() {
                     })
                   )}
                 </AnimatePresence>
-                
+
                 {totalPages > 1 && (
                   <div className={styles.pagination}>
-                    <button 
-                      className={styles.paginationBtn} 
+                    <button
+                      className={styles.paginationBtn}
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage(prev => prev - 1)}
                     >
@@ -1483,8 +1559,8 @@ export default function EmailClient() {
                     <span className={styles.pageInfo}>
                       {currentPage} / {totalPages}
                     </span>
-                    <button 
-                      className={styles.paginationBtn} 
+                    <button
+                      className={styles.paginationBtn}
                       disabled={currentPage === totalPages}
                       onClick={() => setCurrentPage(prev => prev + 1)}
                     >
@@ -1522,7 +1598,7 @@ export default function EmailClient() {
         </div>
       ) : (
         <div className={styles.onboardingContainer}>
-          <motion.div 
+          <motion.div
             className={styles.onboardingCard}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1535,9 +1611,9 @@ export default function EmailClient() {
               Connect your email account to start managing your inbox, sync applications, and automate resume extraction.
             </p>
             <div className={styles.onboardingActions}>
-              <Button 
-                variant="primary" 
-                size="lg" 
+              <Button
+                variant="primary"
+                size="lg"
                 onClick={() => setShowConfigModal(true)}
                 icon={<Plus size={18} />}
               >

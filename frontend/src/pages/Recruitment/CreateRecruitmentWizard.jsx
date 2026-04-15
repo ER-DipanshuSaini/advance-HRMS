@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Check, ChevronRight, ChevronLeft, 
   Briefcase, FileText, Send 
 } from 'lucide-react';
 import Button from '../../components/common/Button/Button';
+import Toast from '../../components/common/Toast/Toast';
+import { useApi } from '../../hooks/useApi';
+import { recruitmentService } from '../../api/recruitmentService';
 import styles from './CreateRecruitmentWizard.module.css';
 
 const STEPS = [
@@ -15,13 +18,17 @@ const STEPS = [
 export default function CreateRecruitmentWizard({ onClose, onCreate }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [skillInput, setSkillInput] = useState('');
+  const [departments, setDepartments] = useState([]);
+  const [toast, setToast] = useState(null);
+  
+  const { loading, request } = useApi();
   
   const [formData, setFormData] = useState({
     title: '',
-    department: 'Engineering',
+    department: '',
     headcount: '1',
     location: '',
-    locationMode: 'On-Site',
+    locationMode: 'ON_SITE',
     expFrom: '',
     expTo: '',
     salaryFrom: '',
@@ -31,10 +38,64 @@ export default function CreateRecruitmentWizard({ onClose, onCreate }) {
     interviews: ['Shortlist', 'Phone Screening', 'Technical Interview 1']
   });
 
+  useEffect(() => {
+    const fetchDepts = async () => {
+      try {
+        const data = await recruitmentService.getDepartments();
+        if (data && Array.isArray(data)) {
+          setDepartments(data);
+          if (data.length > 0) {
+            setFormData(prev => ({ ...prev, department: data[0].id }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch departments:', err);
+      }
+    };
+    fetchDepts();
+  }, []);
+
   const handleNext = () => { if (currentStep < 2) setCurrentStep(c => c + 1); };
   const handleBack = () => { if (currentStep > 1) setCurrentStep(c => c - 1); };
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  const handleSubmit = async () => {
+    try {
+      if (!formData.title || !formData.department) {
+        setToast({ message: 'Role Title and Department are required', type: 'error' });
+        return;
+      }
+
+      const payload = {
+        title: formData.title,
+        department: formData.department,
+        headcount: parseInt(formData.headcount),
+        location_mode: formData.locationMode,
+        location: formData.location,
+        min_experience: parseInt(formData.expFrom) || 0,
+        max_experience: parseInt(formData.expTo) || 0,
+        min_salary: parseFloat(formData.salaryFrom) || 0,
+        max_salary: parseFloat(formData.salaryTo) || 0,
+        job_description: formData.responsibility,
+        requirements: formData.skills.join(', ')
+      };
+
+      const result = await request(null, {
+        call: () => recruitmentService.createPosition(payload)
+      });
+
+      if (result && result.job_id) {
+        setToast({ message: `Successfully created ${result.job_id}`, type: 'success' });
+        setTimeout(() => {
+          if (onCreate) onCreate(result.job_id);
+          else onClose();
+        }, 1500);
+      }
+    } catch (err) {
+      setToast({ message: err.message, type: 'error' });
+    }
+  };
 
   const handleSkillKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
@@ -123,11 +184,9 @@ export default function CreateRecruitmentWizard({ onClose, onCreate }) {
                       <div className={styles.formGroup}>
                         <label>Department</label>
                         <select className={styles.selectField} name="department" value={formData.department} onChange={handleChange}>
-                          <option>Engineering</option>
-                          <option>Design</option>
-                          <option>Human Resources</option>
-                          <option>Marketing</option>
-                          <option>Sales</option>
+                          {departments.map(dept => (
+                            <option key={dept.id} value={dept.id}>{dept.name}</option>
+                          ))}
                         </select>
                       </div>
                       <div className={styles.formGroup}>
@@ -137,9 +196,9 @@ export default function CreateRecruitmentWizard({ onClose, onCreate }) {
                       <div className={styles.formGroup}>
                         <label>Location Mode</label>
                         <select className={styles.selectField} name="locationMode" value={formData.locationMode} onChange={handleChange}>
-                          <option>On-Site</option>
-                          <option>Hybrid</option>
-                          <option>Remote</option>
+                          <option value="ON_SITE">On-Site</option>
+                          <option value="HYBRID">Hybrid</option>
+                          <option value="REMOTE">Remote</option>
                         </select>
                       </div>
                       <div className={styles.fullWidth}>
@@ -273,13 +332,12 @@ export default function CreateRecruitmentWizard({ onClose, onCreate }) {
                     Next Step <ChevronRight size={16} />
                   </Button>
                 ) : (
-                  <Button variant="primary" icon={<Send size={15}/>} onClick={() => {
-                    if(onCreate) {
-                      onCreate('REQ-9999'); // Mock ID for demonstration
-                    } else {
-                      onClose();
-                    }
-                  }}>
+                  <Button 
+                    variant="primary" 
+                    icon={<Send size={15}/>} 
+                    onClick={handleSubmit}
+                    loading={loading}
+                  >
                     Create Recruitment
                   </Button>
                 )}
@@ -288,6 +346,7 @@ export default function CreateRecruitmentWizard({ onClose, onCreate }) {
           </div>
         </div>
       </motion.div>
+      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
     </div>
   );
 }

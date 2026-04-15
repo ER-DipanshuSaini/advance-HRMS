@@ -6,6 +6,7 @@ from datetime import timedelta
 from celery import shared_task
 from django.core.files.base import ContentFile
 from modules.communication_hub.models import MailAccount
+from modules.communication_hub.manager import MailManager
 from .models import CandidateProfile, CandidateResume, ExperienceEntry, IngestionLog
 from .services.parser_service import ParserService
 import logging
@@ -16,72 +17,91 @@ logger = logging.getLogger(__name__)
 def run_candidate_extraction_pipeline():
     """
     Scheduled task to run ETL for all enabled accounts.
-    Runs 2x daily (configured in Celery Beat).
+    Processes resumes from the local database storage.
     """
+    logger.info(">>> [EXTRACT_PIPELINE: START] Background process initiated.")
+    
     accounts = MailAccount.objects.filter(is_etl_enabled=True, is_active=True)
+    account_count = accounts.count()
+    logger.info(f"--- [EXTRACT_PIPELINE: MID] Found {account_count} active accounts with ETL enabled.")
+    
     for account in accounts:
-        process_account_emails(account)
-
-def process_account_emails(account):
-    """Connects to IMAP and processes resumes from the last 12 hours."""
-    try:
-        mail = imaplib.IMAP4_SSL(account.imap_host, account.imap_port)
-        mail.login(account.email_address, account.password)
-        mail.select("inbox")
-
-        # Time filter: 12 hours ago
-        since_date = (timezone.now() - timedelta(hours=12)).strftime("%d-%b-%Y")
-        status, messages = mail.search(None, f'(SINCE {since_date})')
-
-        if status != 'OK':
-            return
-
-        for num in messages[0].split():
-            # Check if already processed
-            uid = num.decode('utf-8')
-            if IngestionLog.objects.filter(account_email=account.email_address, email_uid=uid).exists():
-                continue
-
-            res, msg_data = mail.fetch(num, '(RFC822)')
-            for response_part in msg_data:
-                if isinstance(response_part, tuple):
-                    msg = email.message_from_bytes(response_part[1])
-                    process_individual_email(account, uid, msg)
-
-        mail.close()
-        mail.logout()
-    except Exception as e:
-        logger.error(f"ETL Error for {account.email_address}: {e}")
-
-def process_individual_email(account, uid, msg):
-    """Parses attachments from a single email and creates candidate profiles."""
-    for part in msg.walk():
-        if part.get_content_maintype() == 'multipart':
-            continue
-        if part.get('Content-Disposition') is None:
-            continue
-
-        filename = part.get_filename()
-        if filename and filename.lower().endswith('.pdf'):
-            # It's a PDF resume!
-            file_data = part.get_payload(decode=True)
+        logger.info(f"--- [EXTRACT_PIPELINE: MID] Processing Account: {account.email_address}")
+        
+        # Incremental Sync
+        try:
+            logger.info(f"    [SYNC] Polling incremental updates for {account.email_address}...")
+            MailManager.sync_account_incremental(account)
+            logger.info(f"    [SYNC] Incremental sync successful for {account.email_address}.")
+        except Exception as e:
+            logger.error(f"    [SYNC_ERROR] FAILED for {account.email_address}: {e}")
             
-            # Temporary file object for pdfminer
+        # Process Local
+        logger.info(f"    [LOCAL_SCAN] Checking database for unprocessed resumes for {account.email_address}...")
+        process_local_emails(account)
+        logger.info(f"--- [EXTRACT_PIPELINE: MID] Finished processing Account: {account.email_address}")
+    
+    logger.info("<<< [EXTRACT_PIPELINE: FINAL] Background process completed successfully.")
+
+def process_local_emails(account):
+    """Scans local database for unprocessed emails and extracts resumes."""
+    from modules.communication_hub.models import MailMessage
+    
+    # We only care about emails with attachments that aren't logged yet
+    unprocessed_messages = MailMessage.objects.filter(
+        account=account,
+        attachments__isnull=False
+    ).exclude(
+        id__in=IngestionLog.objects.filter(account_email=account.email_address).values_list('message_id', flat=True)
+    ).distinct()
+
+    count = unprocessed_messages.count()
+    logger.info(f"    [LOCAL_SCAN] Found {count} unprocessed messages with attachments.")
+
+    for msg in unprocessed_messages:
+        logger.info(f"    [MSG_PROCESS] Handling Message ID: {msg.id} (UID: {msg.uid})")
+        process_individual_message(account, msg)
+
+def process_individual_message(account, msg):
+    """Parses attachments from a local MailMessage record."""
+    attachments = msg.attachments.filter(file_name__iendswith='.pdf')
+    
+    if not attachments.exists():
+        logger.info(f"    [MSG_SKIP] No PDF attachments found for Message {msg.id}.")
+        return
+
+    logger.info(f"    [MSG_PROCESS] Found {attachments.count()} PDF attachments.")
+
+    for att in attachments:
+        try:
+            logger.info(f"      [PARSE: START] Extracting text from {att.file_name}...")
+            # Re-read file content from storage
+            file_data = att.file.read()
             text = ParserService.extract_raw_text(ContentFile(file_data))
+            
             if not text:
-                IngestionLog.objects.create(account_email=account.email_address, email_uid=uid, status='FAILED', error_message="Could not extract text from PDF")
+                logger.warning(f"      [PARSE: FAIL] No text could be extracted from {att.file_name}.")
+                IngestionLog.objects.create(
+                    account_email=account.email_address, 
+                    email_uid=msg.uid, 
+                    message=msg,
+                    status='FAILED', 
+                    error_message="Could not extract text from PDF"
+                )
                 continue
 
+            logger.info(f"      [PARSE: MID] Parsing candidate data from text...")
             parsed_data = ParserService.parse_resume(text)
             
-            # Smart De-dupe: Email + Phone match
             email_val = parsed_data.get('email')
             phone_val = parsed_data.get('phone')
 
             if not email_val or not phone_val:
-                # Basic validation failed
+                logger.warning(f"      [PARSE: FAIL] Incomplete data (Email/Phone missing) for {att.file_name}.")
                 continue
 
+            # Upsert Candidate
+            logger.info(f"      [DATABASE: DB_SAVE] Saving candidate {parsed_data.get('name', 'Unknown')} to DB...")
             candidate, created = CandidateProfile.objects.update_or_create(
                 email=email_val,
                 phone=phone_val,
@@ -94,7 +114,7 @@ def process_individual_email(account, uid, msg):
                 }
             )
 
-            # Store Resume File
+            # Store Resume
             resume_filename = f"candidate-resume-{candidate.candidate_id}.pdf"
             CandidateResume.objects.update_or_create(
                 profile=candidate,
@@ -106,7 +126,7 @@ def process_individual_email(account, uid, msg):
             )
 
             # Store Experience
-            ExperienceEntry.objects.filter(profile=candidate).delete() # Clear old ones if updating
+            ExperienceEntry.objects.filter(profile=candidate).delete()
             for exp in parsed_data.get('experience', []):
                 ExperienceEntry.objects.create(
                     profile=candidate,
@@ -117,4 +137,13 @@ def process_individual_email(account, uid, msg):
                 )
 
             status = 'SUCCESS' if created else 'DUPLICATE'
-            IngestionLog.objects.create(account_email=account.email_address, email_uid=uid, status=status)
+            logger.info(f"      [DATABASE: OK] Processed candidate: {candidate.email} (Status: {status})")
+            
+            IngestionLog.objects.create(
+                account_email=account.email_address, 
+                email_uid=msg.uid, 
+                message=msg,
+                status=status
+            )
+        except Exception as e:
+            logger.error(f"      [PARSE_ERROR] Critical failure processing {att.file_name}: {e}")

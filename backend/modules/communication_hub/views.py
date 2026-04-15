@@ -17,7 +17,12 @@ class MailAccountViewSet(viewsets.ModelViewSet):
         return MailAccount.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        from .tasks import full_initial_sync_task
+        account = serializer.save(user=self.request.user)
+        # 1. Sync first batch synchronously for better UX
+        MailManager.sync_account_incremental(account)
+        # 2. Trigger Full Historical Sync in background
+        full_initial_sync_task.delay(account.id)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -45,80 +50,27 @@ def validate_mail_credentials(request):
 def sync_mailbox(request, account_id):
     """
     Triggers an incremental sync for a specific account.
-    Initial sync: 10 emails. Background: Rest.
+    Fails if a full sync is already in progress.
     """
     try:
         account = MailAccount.objects.get(id=account_id, user=request.user)
     except MailAccount.DoesNotExist:
         return Response({'error': 'Account not found'}, status=404)
 
-    # 1. Fetch latest 10 immediately
-    email_data = MailManager.fetch_latest_emails(account, limit=10)
-    
-    new_count = 0
-    for data in email_data:
-        msg, created = MailMessage.objects.get_or_create(
-            account=account,
-            uid=data['uid'],
-            folder='inbox',
-            defaults={
-                'subject': data['subject'],
-                'sender': data['sender'],
-                'recipient': data['recipient'],
-                'body_text': data['body_text'],
-                'body_html': data['body_html'],
-                'received_at': data['received_at']
-            }
-        )
-        if created:
-            new_count += 1
-            # Save attachments
-            for att_data in data.get('attachments', []):
-                MailAttachment.objects.create(
-                    message=msg,
-                    file=ContentFile(att_data['content'], name=att_data['filename']),
-                    file_name=att_data['filename'],
-                    file_size=att_data['size'],
-                    content_type=att_data['content_type']
-                )
+    if account.sync_status == 'syncing':
+        return Response({
+            'success': False, 
+            'error': 'Background full sync is currently in progress. Refreshing is disabled.'
+        }, status=400)
 
-    account.last_sync_at = timezone.now()
-    account.save()
-
-    # 2. Start background thread for deeper sync (simplified for MVP)
-    def background_sync():
-        deep_data = MailManager.fetch_latest_emails(account, limit=50) # In real life, would be chunked
-        for data in deep_data:
-            msg, created = MailMessage.objects.get_or_create(
-                account=account,
-                uid=data['uid'],
-                folder='inbox',
-                defaults={
-                    'subject': data['subject'],
-                    'sender': data['sender'],
-                    'recipient': data['recipient'],
-                    'body_text': data['body_text'],
-                    'body_html': data['body_html'],
-                    'received_at': data['received_at']
-                }
-            )
-            if created:
-                for att_data in data.get('attachments', []):
-                    MailAttachment.objects.create(
-                        message=msg,
-                        file=ContentFile(att_data['content'], name=att_data['filename']),
-                        file_name=att_data['filename'],
-                        file_size=att_data['size'],
-                        content_type=att_data['content_type']
-                    )
-
-    thread = threading.Thread(target=background_sync)
-    thread.start()
+    # Perform Incremental Sync (New emails only)
+    new_count = MailManager.sync_account_incremental(account)
 
     return Response({
         'success': True, 
         'new_emails': new_count,
-        'last_sync': account.last_sync_at
+        'last_sync': account.last_sync_at,
+        'sync_status': account.sync_status
     })
 
 class MailMessageViewSet(viewsets.ModelViewSet):

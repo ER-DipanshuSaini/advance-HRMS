@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -8,58 +8,67 @@ import {
 import Button from '../../components/common/Button/Button';
 import Badge from '../../components/common/Badge/Badge';
 import CreateRecruitmentWizard from './CreateRecruitmentWizard';
+import { useApi } from '../../hooks/useApi';
+import { recruitmentService } from '../../api/recruitmentService';
+import Card from '../../components/common/Card/Card';
 import styles from './RecruitmentDashboard.module.css';
-
-// MOCK_RECORDS preserved for simplicity in this structural update
-const MOCK_RECORDS = [
-  { 
-    id: 1, jobId: 'REQ-10042', role: 'Senior React Developer', department: 'Engineering', 
-    status: 'Active', openedOn: 'Apr 02, 2026',
-    headcount: 2, locationMode: 'Hybrid', location: 'New York, USA', salaryBand: '₹18L - ₹24L',
-    pipeline: { new: 45, processing: 17, final: 2 }
-  },
-  { 
-    id: 2, jobId: 'REQ-10045', role: 'Product Marketing Manager', department: 'Marketing', 
-    status: 'Draft', openedOn: '--',
-    headcount: 1, locationMode: 'Remote', location: 'Anywhere', salaryBand: '₹12L - ₹16L',
-    pipeline: { new: 0, processing: 0, final: 0 }
-  },
-  { 
-    id: 3, jobId: 'REQ-10012', role: 'DevOps Engineer', department: 'Engineering', 
-    status: 'Closed', openedOn: 'Jan 15, 2026',
-    headcount: 1, locationMode: 'On-Site', location: 'San Francisco, CA', salaryBand: '₹22L - ₹30L',
-    pipeline: { new: 112, processing: 30, final: 4 }
-  },
-  { 
-    id: 4, jobId: 'REQ-10061', role: 'Talent Acquisition', department: 'Human Resources', 
-    status: 'Active', openedOn: 'Apr 08, 2026',
-    headcount: 3, locationMode: 'Hybrid', location: 'London, UK', salaryBand: '₹10L - ₹14L',
-    pipeline: { new: 18, processing: 4, final: 0 }
-  }
-];
 
 export default function RecruitmentDashboard() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('All');
   const [showWizard, setShowWizard] = useState(false);
+  const [records, setRecords] = useState([]);
+  const { loading, request } = useApi();
   const navigate = useNavigate();
 
-  const filteredRecords = MOCK_RECORDS.filter(r => {
+  const fetchRecruitments = async () => {
+    try {
+      const data = await request(null, { 
+        call: () => recruitmentService.getPositions() 
+      });
+      
+      // Transform backend data to frontend structure
+      if (data && Array.isArray(data)) {
+        const transformed = data.map(r => ({
+          id: r.id,
+          jobId: r.job_id,
+          role: r.title,
+          department: r.department_name,
+          experience: r.experience_range,
+          headcount: r.headcount,
+          locationMode: r.location_mode.charAt(0).toUpperCase() + r.location_mode.slice(1).toLowerCase().replace('_', '-'),
+          location: r.location,
+          salaryBand: r.budget_range,
+          statusStage: r.current_process_stage,
+          internalStatus: r.status,
+          openingDate: r.opening_date
+        }));
+        setRecords(transformed);
+      }
+    } catch (err) {
+      console.error('Failed to fetch recruitments:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecruitments();
+  }, []);
+
+  const filteredRecords = records.filter(r => {
     const matchesSearch = r.role.toLowerCase().includes(search.toLowerCase()) || 
                           r.jobId.toLowerCase().includes(search.toLowerCase()) ||
                           r.department.toLowerCase().includes(search.toLowerCase());
-    const matchesTab = activeTab === 'All' ? true : r.status === activeTab;
-    return matchesSearch && matchesTab;
+    return matchesSearch;
   });
 
-  const activeCount = MOCK_RECORDS.filter(r => r.status === 'Active').length;
-  const totalCandidates = MOCK_RECORDS.reduce((sum, r) => sum + r.pipeline.new + r.pipeline.processing + r.pipeline.final, 0);
+  const activeCount = records.filter(r => r.internalStatus === 'ACTIVE').length;
+  const totalCandidates = records.length; // Placeholder for total candidates across all jobs
 
   const renderPipelineBar = (pl) => {
-    const total = (pl.new + pl.processing + pl.final) || 1; 
-    const wN = (pl.new / total) * 100;
-    const wP = (pl.processing / total) * 100;
-    const wF = (pl.final / total) * 100;
+    const total = (pl.new + pl.processing + pl.final) || 0; 
+    const wN = total ? (pl.new / total) * 100 : 0;
+    const wP = total ? (pl.processing / total) * 100 : 0;
+    const wF = total ? (pl.final / total) * 100 : 0;
 
     return (
       <div className={styles.pipelineWrap}>
@@ -83,7 +92,6 @@ export default function RecruitmentDashboard() {
       transition={{ duration: 0.3 }}
       style={{ display: 'contents' }}
     >
-      {/* Structural Card: Page Header */}
       <div className={styles.pageHeader}>
         <div className={styles.headerInfo}>
           <h1 className={styles.headerTitle}>Recruitment Command Center</h1>
@@ -94,7 +102,6 @@ export default function RecruitmentDashboard() {
         </Button>
       </div>
 
-      {/* Structural Card: Metrics Strip */}
       <div className={styles.metricsStrip}>
         <div className={styles.metricItem}>
           <div className={styles.metricIcon} style={{ background: '#eff6ff' }}>
@@ -102,7 +109,7 @@ export default function RecruitmentDashboard() {
           </div>
           <div className={styles.metricContent}>
             <span className={styles.metricLabel}>Total Capacity</span>
-            <span className={styles.metricValue}>{MOCK_RECORDS.reduce((s,r) => s+r.headcount,0)}</span>
+            <span className={styles.metricValue}>{records.reduce((s,r) => s+r.headcount,0)}</span>
           </div>
         </div>
         <div className={styles.metricDivider}></div>
@@ -127,39 +134,21 @@ export default function RecruitmentDashboard() {
         </div>
       </div>
 
-      {/* Main Structural Container: Table Card */}
-      <div className={styles.mainContainer}>
-        {/* Advanced Toolbar Mirroring Employee Directory */}
+      <Card noPadding shadow="sm" className={styles.mainContainer}>
         <div className={styles.toolbar}>
           <div className={styles.toolbarLeft}>
             <div className={styles.searchContainer}>
-              <Search size={16} className={styles.searchIcon} />
+              <Search size={18} className={styles.searchIcon} />
               <input 
-                placeholder="Search Req ID, Dept, or Role..." 
+                placeholder="Search by Job ID, Department, or Role..." 
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className={styles.mainSearch}
               />
             </div>
-            
-            <div className={styles.tabs}>
-              {['All', 'Active', 'Draft', 'Closed'].map(tab => {
-                const count = tab === 'All' ? MOCK_RECORDS.length : MOCK_RECORDS.filter(r => r.status === tab).length;
-                return (
-                  <button 
-                    key={tab} 
-                    className={`${styles.tabBtn} ${activeTab === tab ? styles.tabActive : ''}`}
-                    onClick={() => setActiveTab(tab)}
-                  >
-                    {tab} <span className={styles.tabCount}>{count}</span>
-                  </button>
-                );
-              })}
-            </div>
           </div>
-
           <div className={styles.toolbarRight}>
-            <Button variant="outline" icon={<Filter size={15} />}>Deep Filter</Button>
+            <Button variant="outline" icon={<Filter size={15} />}>Advanced Filters</Button>
           </div>
         </div>
 
@@ -167,54 +156,63 @@ export default function RecruitmentDashboard() {
           <table className={styles.saasTable}>
             <thead>
               <tr>
-                <th style={{ width: '320px' }}>Target Role & Identity</th>
-                <th style={{ width: '120px' }}>Status</th>
-                <th style={{ width: '120px' }}>Capacity</th>
-                <th>Remuneration</th>
-                <th>Deployment</th>
-                <th style={{ width: '180px' }}>Pipeline Volume</th>
-                <th style={{ textAlign: 'right' }}>Management</th>
+                <th style={{ width: '60px' }}>S.No</th>
+                <th style={{ width: '120px' }}>Job ID</th>
+                <th style={{ width: '250px' }}>Role Name</th>
+                <th>Department</th>
+                <th>Experience</th>
+                <th style={{ width: '100px' }}>Openings</th>
+                <th>Location</th>
+                <th>Budget</th>
+                <th style={{ width: '180px' }}>Process Stage</th>
+                <th>Opening Date</th>
               </tr>
             </thead>
             <tbody>
-              {filteredRecords.length > 0 ? (
-                filteredRecords.map(r => (
-                  <tr key={r.id}>
-                    <td>
-                      <div className={styles.roleMeta}>
-                        <div className={styles.roleHeader}>
-                           <span className={styles.roleName}>{r.role}</span>
-                           <span className={styles.jobIdBadge}>{r.jobId}</span>
-                        </div>
-                        <span className={styles.roleDept}>
-                          <Building2 size={12} /> {r.department}
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <Badge variant={r.status === 'Active' ? 'success' : r.status === 'Draft' ? 'warning' : 'danger'}>
-                        {r.status}
-                      </Badge>
-                    </td>
-                    <td className={styles.capacityLabel}>{r.headcount} Slots</td>
-                    <td className={styles.salaryLabel}>{r.salaryBand}</td>
+              {loading && records.length === 0 ? (
+                <tr>
+                  <td colSpan="10">
+                    <div className={styles.emptyState}>
+                      <div className={styles.spinner} />
+                      <p>Loading recruitment pipelines...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredRecords.length > 0 ? (
+                filteredRecords.map((r, index) => (
+                  <tr 
+                    key={r.id} 
+                    onClick={() => navigate(`/recruitment/pipeline/${r.jobId}`)}
+                    className={styles.clickableRow}
+                  >
+                    <td className={styles.srNoCell}>{index + 1}</td>
+                    <td className={styles.jobIdCell}><span className={styles.jobIdBadge}>{r.jobId}</span></td>
+                    <td className={styles.roleNameCell}>{r.role}</td>
+                    <td>{r.department}</td>
+                    <td className={styles.expCell}>{r.experience}</td>
+                    <td className={styles.headcountCell}>{r.headcount} Slots</td>
                     <td>
                       <div className={styles.locationStack}>
                         <span className={styles.locMode}>{r.locationMode}</span>
                         <span className={styles.locCity}><MapPin size={10}/> {r.location}</span>
                       </div>
                     </td>
-                    <td>{renderPipelineBar(r.pipeline)}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Button variant="ghost" size="sm" onClick={() => navigate(`/recruitment/pipeline/${r.jobId}`)}>
-                        Details
-                      </Button>
+                    <td className={styles.budgetCell}>{r.salaryBand}</td>
+                    <td>
+                      <Badge variant={
+                        r.statusStage === 'Hired' ? 'success' : 
+                        r.statusStage === 'Rejected' ? 'danger' : 
+                        r.statusStage === 'Sourcing' ? 'warning' : 'primary'
+                      }>
+                        {r.statusStage}
+                      </Badge>
                     </td>
+                    <td>{r.openingDate}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7">
+                  <td colSpan="10">
                     <div className={styles.emptyState}>
                       <AlertCircle size={40} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
                       <h3>No results match your criteria</h3>
@@ -226,9 +224,8 @@ export default function RecruitmentDashboard() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
-      {/* Expansion Wizard */}
       <AnimatePresence>
         {showWizard && (
           <CreateRecruitmentWizard 
