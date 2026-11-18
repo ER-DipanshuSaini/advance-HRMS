@@ -39,10 +39,13 @@ export default function RoleManagement() {
   useEffect(() => { loadData(); }, []);
 
   const groupedPermissions = useMemo(() => {
-    const groups = {};
-    allPermissions.forEach(p => {
-      if (!groups[p.module]) groups[p.module] = [];
-      groups[p.module].push(p);
+    const groups = Object.create(null);
+    const humanize = value => value.replace(/[_-]+/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+    allPermissions.forEach(permission => {
+      const [category, action] = (permission.code || '').split(':');
+      const module = permission.module?.trim() || (category && action ? humanize(category) : 'Other');
+      const name = permission.name?.trim() || humanize(action || category) || 'Unnamed permission';
+      (groups[module] ??= []).push({ ...permission, name });
     });
     return groups;
   }, [allPermissions]);

@@ -42,8 +42,14 @@ class Command(BaseCommand):
         try:
             admin_role = Role.objects.get(name="SuperAdmin")
             admin_role.permissions.add(*perm_objs)
-            # Make sure SuperAdmin also gets leaves:view_all to fix potential bugs
-            v, _ = Permission.objects.get_or_create(code='attendance:view_all')
+            v, _ = Permission.objects.get_or_create(
+                code='attendance:view_all',
+                defaults={
+                    'name': 'View All',
+                    'module': 'Attendance',
+                    'description': 'Allows viewing attendance records for all employees.',
+                },
+            )
             admin_role.permissions.add(v)
             self.stdout.write(self.style.SUCCESS(f"-> Appended all to 'SuperAdmin' role."))
         except Role.DoesNotExist:
