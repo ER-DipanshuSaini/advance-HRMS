@@ -1,16 +1,38 @@
-.scrollRegion { overflow-x: auto; }
+.scrollRegion { overflow-x: auto; container-type: inline-size; }
 .table { width: 100%; border-collapse: collapse; min-width: 760px; }
 .table th { padding: 1rem 1.5rem; background: #f8fafc; font-size: .7rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: .08em; text-align: left; }
 .table td { padding: 1rem 1.5rem; border-bottom: 1px solid #f8fafc; font-size: .8125rem; color: #334155; vertical-align: middle; }
 .table tr:last-child td { border-bottom: 0; }
 .interactive { cursor: pointer; }
 .table .interactive:hover td, .table .interactive:focus-within td { background: #f1f5f9; }
-.state { padding: 4rem 2rem; text-align: center; }
-.state h3 { margin-bottom: .5rem; font-size: 1.1rem; font-weight: 800; color: #334155; }
-.state p { font-size: .8125rem; color: var(--text-secondary); }
-.state button { margin-top: .8rem; }
-.stateIcon, .spinner { display: block; margin: 0 auto 1rem; color: #94a3b8; }
-.spinner { color: var(--primary); animation: spin .8s linear infinite; }
+.table .stateCell { padding: 0; }
+.state {
+  position: sticky;
+  inset-inline-start: 0;
+  inline-size: 100%;
+  inline-size: min(100%, 100cqi);
+  display: grid;
+  justify-items: center;
+  gap: .9rem;
+  padding: 2rem 1rem 2.25rem;
+  text-align: center;
+  background: linear-gradient(to bottom, var(--surface-hover), var(--surface-color) 70%);
+}
+.stateCopy { display: grid; justify-items: center; gap: .4rem; max-inline-size: 28rem; min-inline-size: 0; }
+.state h3 { font-size: 1.1rem; color: var(--text-primary); }
+.state p { color: var(--text-secondary); overflow-wrap: anywhere; }
+.stateIcon {
+  display: grid;
+  place-items: center;
+  inline-size: 3rem;
+  block-size: 3rem;
+  margin-bottom: .3rem;
+  border-radius: var(--border-radius-lg);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.state[data-tone='error'] .stateIcon { background: var(--danger-light); color: var(--danger); }
+.state[data-tone='loading'] .stateIcon svg { animation: spin .8s linear infinite; }
 .pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem; }
 .paginationActions { display: flex; gap: .5rem; }
 @keyframes spin { to { transform: rotate(360deg); } }

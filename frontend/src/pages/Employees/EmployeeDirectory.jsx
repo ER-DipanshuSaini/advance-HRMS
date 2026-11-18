@@ -167,6 +167,9 @@ export default function EmployeeDirectory() {
   }
 
 
+  const canAddEmployee = hasPerm('users:add');
+  const openEmployeeForm = () => { setCreatedEmp(null); employeeModal.open(); };
+
   const columns = [
     { key: 'number', label: 'S.No', width: '60px', render: (_, index) => index + 1 },
     { key: 'id', label: 'Employee ID', width: '130px', render: employee =>
@@ -212,8 +215,8 @@ export default function EmployeeDirectory() {
 
   return (
     <PageLayout>
-      <PageHeader title="Employee Directory" actions={hasPerm('users:add') &&
-        <Button icon={<Plus size={16} />} onClick={() => { setCreatedEmp(null); employeeModal.open(); }}>Add employee</Button>} />
+      <PageHeader title="Employee Directory" actions={canAddEmployee &&
+        <Button icon={<Plus size={16} />} onClick={openEmployeeForm}>Add employee</Button>} />
       {employeesData && <MetricStrip metrics={[
         { label: 'Total Employees', value: stats.total, Icon: Users },
         { label: 'Active on This Page', value: stats.active, Icon: UserCircle, tone: 'success' },
@@ -221,11 +224,16 @@ export default function EmployeeDirectory() {
       ]} />}
       <DataTable label="Employees" columns={columns} rows={filteredEmployees} rowKey={employee => employee.id}
         loading={loadingEmployees || (!employeesData && !employeesError)} error={employeesError} onRetry={() => loadData(page)}
-        empty={search || Object.values(filters).some(Boolean) ? {
-          title: 'No employees match these filters',
+        empty={employeesData?.count > 0 && (search.trim() || Object.values(filters).some(Boolean)) ? {
+          tone: 'filtered', title: 'No employees match these filters',
           description: 'Adjust your filters or search query.',
           action: { label: 'Clear filters', run: clearFilters },
-        } : { title: 'No employees yet' }}
+        } : {
+          title: 'No employees yet',
+          description: canAddEmployee ? 'Add your first employee to start building the directory.' : 'Employees will appear here once they are added.',
+          icon: Users,
+          action: canAddEmployee && { label: 'Add employee', icon: <Plus size={15} />, run: openEmployeeForm },
+        }}
         pagination={employeesData && {
           page, total: employeesData.count, hasPrevious: Boolean(employeesData.previous), hasNext: Boolean(employeesData.next),
           onPrevious: () => setPage(value => Math.max(1, value - 1)), onNext: () => setPage(value => value + 1),

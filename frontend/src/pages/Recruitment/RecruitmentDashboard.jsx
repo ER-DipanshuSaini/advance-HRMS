@@ -58,6 +58,8 @@ export default function RecruitmentDashboard() {
 
   useEffect(() => { load(); }, [load]);
 
+  const canCreate = hasPermission(user, 'recruitment:add');
+  const createJob = () => setShowWizard(true);
   const query = search.trim().toLowerCase();
   const visible = (jobs || []).filter(job =>
     (!status || job.status === status) &&
@@ -71,8 +73,8 @@ export default function RecruitmentDashboard() {
 
   return (
     <PageLayout>
-      <PageHeader title="Recruitment Command Center" actions={hasPermission(user, 'recruitment:add') &&
-        <Button icon={<Plus size={16} />} onClick={() => setShowWizard(true)}>New Recruitment</Button>} />
+      <PageHeader title="Recruitment Command Center" actions={canCreate &&
+        <Button icon={<Plus size={16} />} onClick={createJob}>New Recruitment</Button>} />
       {jobs && <MetricStrip metrics={[
         { label: 'Active Openings', value: active.reduce((count, job) => count + job.headcount, 0), Icon: Briefcase },
         { label: 'Active Pipelines', value: active.length, Icon: Users, tone: 'success' },
@@ -81,9 +83,14 @@ export default function RecruitmentDashboard() {
       <DataTable label="Job openings" columns={columns} rows={visible} rowKey={job => job.id}
         onRowClick={job => navigate(pipelinePath(job.job_id))} loading={!jobs && !error} error={error} onRetry={load}
         empty={jobs?.length ? {
-          title: 'No results match your criteria', description: 'Adjust your search or status filter.',
+          tone: 'filtered', title: 'No jobs match your search', description: 'Adjust your search or status filter.',
           action: { label: 'Clear filters', run: clearFilters },
-        } : { title: 'No recruitment pipelines yet' }}
+        } : {
+          title: 'No recruitment pipelines yet',
+          description: canCreate ? 'Create a job opening to start tracking candidates.' : 'Job openings will appear here once they are created.',
+          icon: Briefcase,
+          action: canCreate && { label: 'Create job opening', icon: <Plus size={15} />, run: createJob },
+        }}
         toolbar={<TableToolbar search={search} onSearch={setSearch} searchLabel="Search jobs"
           placeholder="Search by Job ID, Department, or Role..." onReset={clearFilters}
           filters={[{ label: 'Status', value: status, onChange: setStatus, options: statuses }]} />} />

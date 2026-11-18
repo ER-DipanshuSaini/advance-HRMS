@@ -1,17 +1,22 @@
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Inbox, Loader2, SearchX } from 'lucide-react';
 import Button from '../Button/Button';
 import Card from '../Card/Card';
 import styles from './DataTable.module.css';
 
-function TableState({ columns, tone, title, description, action }) {
-  const Icon = tone === 'loading' ? Loader2 : AlertCircle;
+const stateIcons = { empty: Inbox, filtered: SearchX, loading: Loader2, error: AlertCircle };
+
+function TableState({ columns, tone = 'empty', title, description, action, icon }) {
+  const Icon = icon || stateIcons[tone];
   return (
-    <tr><td colSpan={columns}>
-      <div className={styles.state} role={tone === 'error' ? 'alert' : 'status'}>
-        <Icon size={38} aria-hidden="true" className={tone === 'loading' ? styles.spinner : styles.stateIcon} />
-        <h3>{title}</h3>
-        {description && <p>{description}</p>}
-        {action && <Button variant="outline" onClick={action.run}>{action.label}</Button>}
+    <tr><td colSpan={columns} className={styles.stateCell}>
+      <div className={styles.state} data-tone={tone}>
+        <div className={styles.stateCopy} role={tone === 'error' ? 'alert' : 'status'}>
+          <span className={styles.stateIcon} aria-hidden="true"><Icon size={25} /></span>
+          <h3>{title}</h3>
+          {description && <p>{description}</p>}
+        </div>
+        {action && <Button size="sm" variant={tone === 'empty' ? 'primary' : 'outline'}
+          icon={action.icon} onClick={action.run}>{action.label}</Button>}
       </div>
     </td></tr>
   );
