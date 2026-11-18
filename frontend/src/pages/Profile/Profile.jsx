@@ -1,3 +1,4 @@
+import Select from '../../components/common/Select/Select';
 import { useOutletContext } from 'react-router-dom';
 import { hasPermission } from '../../session';
 import PageState from '../../components/common/PageState';
@@ -232,7 +233,7 @@ export default function Profile() {
         <div className="flex flex-col gap-6">
           <Card
             title="Contact Information"
-            extra={canEdit && <Button variant="outline" size="small" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem' }} onClick={openContactEdit} icon={<Edit3 size={12} />}>Edit</Button>}
+            extra={canEdit && <Button variant="outline" size="sm" onClick={openContactEdit} icon={<Edit3 size={12} />}>Edit</Button>}
           >
             <div className={styles.infoCard}>
               <div className={styles.infoItem}>
@@ -264,7 +265,7 @@ export default function Profile() {
         <div className="flex flex-col gap-6">
           <Card
             title="Organizational Details"
-            extra={canEdit && <Button variant="outline" size="small" style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem' }} onClick={openOperationalEdit} icon={<Edit3 size={12} />}>Edit</Button>}
+            extra={canEdit && <Button variant="outline" size="sm" onClick={openOperationalEdit} icon={<Edit3 size={12} />}>Edit</Button>}
           >
             <div className={styles.orgCard}>
               <div className={styles.infoItem}>
@@ -346,18 +347,11 @@ export default function Profile() {
               required
             />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>Phone Number</label>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ padding: '0.65rem', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRight: 'none', borderRadius: '12px 0 0 12px', fontSize: '0.8125rem', color: '#475569', fontWeight: 600 }}>+91</span>
-              <input
-                type="text"
-                style={{ padding: '0.78rem 1rem', flex: 1, borderRadius: '0 12px 12px 0', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.8125rem' }}
-                value={formData.phone_number}
-                onChange={e => setFormData({ ...formData, phone_number: e.target.value.replace(/\D/g, '').substring(0, 10) })}
-              />
-            </div>
-          </div>
+          <Input label="Phone Number (+91)" type="tel" inputMode="numeric" maxLength={10}
+            value={formData.phone_number}
+            onChange={event => setFormData(current => ({
+              ...current, phone_number: event.target.value.replace(/\D/g, '').slice(0, 10),
+            }))} />
           
           <Input
             label="Village / Street / Area"
@@ -403,28 +397,20 @@ export default function Profile() {
           </div>
           <div className={styles.modalGrid2}>
             <Input label="Date Joined" value={formatJoinDate(p.date_of_joining)} disabled={true} onChange={() => { }} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>Work Type</label>
-              <select
-                style={{ padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fcfdfe', outline: 'none' }}
+            <Select label="Work Type"
                 value={formData.work_type}
                 onChange={e => setFormData({ ...formData, work_type: e.target.value })}
               >
                 <option value="ON_SITE">On-Site</option>
                 <option value="REMOTE">Remote</option>
                 <option value="HYBRID">Hybrid</option>
-              </select>
-            </div>
+              </Select>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>Professional Bio</label>
-            <textarea
-              style={{ padding: '0.65rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fcfdfe', outline: 'none', minHeight: '100px', resize: 'vertical', fontFamily: 'inherit' }}
+          <Input as="textarea" label="Professional Bio" rows={4}
               value={formData.professional_bio}
               onChange={e => setFormData({ ...formData, professional_bio: e.target.value })}
-            ></textarea>
-          </div>
+             />
         </div>
       </Modal>
 

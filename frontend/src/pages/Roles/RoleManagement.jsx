@@ -1,3 +1,5 @@
+import PageLayout from '../../components/common/PageLayout';
+import PageHeader from '../../components/common/PageHeader/PageHeader';
 import { useOutletContext } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { Lock, Plus, ShieldCheck, Save, X, ChevronRight, Info } from 'lucide-react';
@@ -90,15 +92,10 @@ export default function RoleManagement() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className={styles.pageHeader}>
-        <div>
-          <h1 className={styles.headerTitle}>Roles and permissions</h1>
-        </div>
-        {isSuper && (
+    <PageLayout>
+      <PageHeader title="Roles and permissions" actions={isSuper && (
           <Button icon={<Plus size={16} />} onClick={() => roleModal.open()}>Create Custom Role</Button>
-        )}
-      </header>
+      )} />
 
       <div className={styles.workspaceGrid}>
 
@@ -196,6 +193,6 @@ export default function RoleManagement() {
       </Modal>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-    </div>
+    </PageLayout>
   );
 }

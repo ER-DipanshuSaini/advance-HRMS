@@ -1,3 +1,4 @@
+import { usePopover } from '../../hooks/usePopover';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
@@ -25,7 +26,7 @@ export default function EmailView({ email, folder, onBack, onReply, onReplyAll, 
     }
   }
 
-  const [showMore, setShowMore] = useState(false);
+  const { isOpen: showMore, containerRef, panelId, close, trigger } = usePopover();
   const isOutgoing = folder === 'sent' || folder === 'drafts';
   const isTrash = folder === 'trash';
   const senderName = isOutgoing ? (email.recipient || 'Recipients') : (email.sender?.split('<')[0]?.trim() || email.sender);
@@ -62,34 +63,34 @@ export default function EmailView({ email, folder, onBack, onReply, onReplyAll, 
               </button>
             </>
           )}
-          <div className={styles.moreMenuWrapper}>
-            <button className={`${styles.viewActionBtn} ${showMore ? styles.viewActionBtnActive : ''}`} title="More options" onClick={() => setShowMore(!showMore)}>
+          <div className={styles.moreMenuWrapper} ref={containerRef}>
+            <button className={`${styles.viewActionBtn} ${showMore ? styles.viewActionBtnActive : ''}`} aria-label="More options" {...trigger}>
               <MoreHorizontal size={15} />
             </button>
             <AnimatePresence>
               {showMore && (
                 <motion.div
-                  className={styles.moreDropdownMenu}
+                  id={panelId} className={styles.moreDropdownMenu}
                   initial={{ opacity: 0, y: -4, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
                 >
-                  <button onClick={() => { setShowMore(false); onForward(email); }}>
+                  <button onClick={() => { close(); onForward(email); }}>
                     <Forward size={14} /> Forward
                   </button>
                   {!isOutgoing && (
-                    <button onClick={() => { setShowMore(false); onMarkUnread(email); }}>
+                    <button onClick={() => { close(); onMarkUnread(email); }}>
                       <Mail size={14} /> Mark as unread
                     </button>
                   )}
                   {isTrash && (
-                    <button onClick={() => { setShowMore(false); onRecover(email); }}>
+                    <button onClick={() => { close(); onRecover(email); }}>
                       <RotateCcw size={14} /> Recover
                     </button>
                   )}
                   <div className={styles.dropdownDivider} />
-                  <button className={styles.dangerText} onClick={() => { setShowMore(false); onTrash(email); }}>
+                  <button className={styles.dangerText} onClick={() => { close(); onTrash(email); }}>
                     <Trash2 size={14} /> {isTrash ? 'Delete permanently' : 'Delete'}
                   </button>
                 </motion.div>

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import styles from './Card.module.css';
 
 /**
@@ -9,6 +9,8 @@ import styles from './Card.module.css';
  * @param {string} padding - Header/Body/Footer padding
  */
 export default function Card({ 
+  as: Element = 'div',
+  variant = 'default',
   title, 
   extra, 
   children, 
@@ -17,10 +19,10 @@ export default function Card({
   noPadding = false,
   ...props 
 }) {
-  const cardClass = `${styles.card} ${className} ${styles.fadeIn}`;
+  const cardClass = [styles.card, styles[variant], className].filter(Boolean).join(' ');
 
   return (
-    <div className={cardClass} {...props}>
+    <Element className={cardClass} {...props}>
       {(title || extra) && (
         <div className={styles.header}>
           {title && <h3 className={styles.title}>{title}</h3>}
@@ -35,6 +37,6 @@ export default function Card({
           {footer}
         </div>
       )}
-    </div>
+    </Element>
   );
 }

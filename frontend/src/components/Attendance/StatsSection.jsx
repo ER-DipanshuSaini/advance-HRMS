@@ -1,3 +1,5 @@
+import Card from '../common/Card/Card';
+import Button from '../common/Button/Button';
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -30,13 +32,11 @@ export default function StatsSection({
       animate="show"
     >
       {/* ── LEAVE BALANCE ───────────────── */}
-      <motion.div className={styles.leaveCard} variants={item}>
+      <Card as={motion.div} variant="calendarSummary" variants={item}>
         <div className={styles.leaveHeader}>
           <h4 className={styles.leaveTitle}>Leave Balance</h4>
           {canApplyLeave && (
-            <button className={styles.applyBtn} onClick={onApplyLeave}>
-              <Plus size={11} /> Apply Leave
-            </button>
+            <Button variant="calendar" icon={<Plus size={11} />} onClick={onApplyLeave}>Apply Leave</Button>
           )}
         </div>
 
@@ -84,10 +84,10 @@ export default function StatsSection({
             </>
           )}
         </div>
-      </motion.div>
+      </Card>
 
       {/* ── UPCOMING HOLIDAYS ───────────── */}
-      <motion.div className={styles.upcomingCard} variants={item}>
+      <Card as={motion.div} variant="calendarSummary" variants={item}>
         <div className={styles.upcomingHeader}>
           <h4 className={styles.upcomingTitle}>Upcoming Holidays</h4>
           {upcomingHolidays?.length > 0 && (
@@ -128,7 +128,7 @@ export default function StatsSection({
             </p>
           )}
         </div>
-      </motion.div>
+      </Card>
     </motion.div>
   );
 }

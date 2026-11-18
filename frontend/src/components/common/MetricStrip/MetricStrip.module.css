@@ -1,0 +1,10 @@
+.metrics { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; padding: 1rem 1.5rem; }
+.metric { display: flex; align-items: center; flex: 1; gap: 1rem; min-width: 10rem; }
+.metric + .metric { border-left: 1px solid #f1f5f9; padding-left: 2rem; }
+.metric dt { color: var(--text-secondary); font-size: .65rem; font-weight: 700; text-transform: uppercase; }
+.metric dd { color: var(--text-primary); font-size: 1.375rem; font-weight: 800; margin: 0; }
+.icon { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 12px; }
+.primary { background: var(--primary-light); color: var(--primary); }
+.success { background: var(--success-light); color: var(--success); }
+.warning { background: var(--warning-light); color: var(--warning); }
+@media (max-width: 768px) { .metric + .metric { border: 0; padding-left: 0; } }

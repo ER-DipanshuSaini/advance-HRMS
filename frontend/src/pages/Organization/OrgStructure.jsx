@@ -1,3 +1,6 @@
+import PageLayout from '../../components/common/PageLayout';
+import Select from '../../components/common/Select/Select';
+import PageHeader from '../../components/common/PageHeader/PageHeader';
 import { useOutletContext } from 'react-router-dom';
 import { hasPermission } from '../../session';
 import { useState, useEffect, useMemo } from 'react';
@@ -148,17 +151,12 @@ export default function OrgStructure() {
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in">
-      <header className={styles.pageHeader}>
-        <div>
-          <h1 className={styles.headerTitle}>Organization</h1>
-        </div>
-        {hasPerm('depts:add') && (
+    <PageLayout>
+      <PageHeader title="Organization" actions={hasPerm('depts:add') && (
           <Button icon={<Plus size={16} />} onClick={() => { setFormData({ name: '', code: '', hod: '' }); deptModal.open(); }}>
             New Department
           </Button>
-        )}
-      </header>
+      )} />
 
       <div className={styles.workspaceGrid}>
 
@@ -287,9 +285,7 @@ export default function OrgStructure() {
             required
           />
           <div className="flex flex-col gap-2">
-            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#475569' }}>Head of Department (Optional)</label>
-            <select
-              className={styles.select}
+            <Select label="Head of Department (Optional)"
               value={formData.hod}
               onChange={e => setFormData({ ...formData, hod: e.target.value })}
             >
@@ -299,7 +295,7 @@ export default function OrgStructure() {
                   {`${u.first_name || ''} ${u.last_name || ''}`.trim() || 'Unnamed'} - ({u.employee_id || u.email})
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
       </Modal>
@@ -341,6 +337,6 @@ export default function OrgStructure() {
       </Modal>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-    </div>
+    </PageLayout>
   );
 }

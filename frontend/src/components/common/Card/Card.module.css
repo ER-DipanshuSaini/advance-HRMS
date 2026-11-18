@@ -9,10 +9,6 @@
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.fadeIn {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
 .header {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid #f1f5f9;
@@ -37,7 +33,7 @@
 }
 
 .noPadding {
-  padding: 0 !important;
+  padding: 0;
 }
 
 .footer {
@@ -46,7 +42,16 @@
   border-top: 1px solid #f1f5f9;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+
+.card { min-width: 0; background: var(--surface-color); }
+.table, .pageHeader, .metrics { flex: 0 0 auto; }
+.table { border-color: #f1f5f9; }
+.pageHeader { border-color: #eef2f6; box-shadow: 0 4px 20px -5px rgb(0 0 0 / .03); }
+.metrics { border-color: #eef2f6; }
+.calendar, .calendarSummary { border-radius: 24px; border-color: #f1f5f9; }
+.calendar { box-shadow: 0 10px 30px rgb(0 0 0 / .02); }
+.calendar:hover { box-shadow: 0 20px 40px rgb(0 0 0 / .04); }
+.calendarSummary { box-shadow: 0 4px 12px rgb(0 0 0 / .02); }
+.calendarSummary:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgb(0 0 0 / .05); }
+.shortcut { text-decoration: none; color: var(--text-primary); }
+.shortcut:hover { border-color: var(--primary); box-shadow: var(--shadow-sm); }

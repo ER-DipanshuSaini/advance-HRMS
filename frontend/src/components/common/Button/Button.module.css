@@ -76,3 +76,26 @@
 
 .ghost { background: transparent; color: var(--text-primary); }
 .ghost:hover:not(:disabled) { background: var(--surface-hover); }
+
+.calendar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(124, 58, 237, 0.25);
+  transition: all 0.2s ease;
+}
+.calendar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.35);
+}
+.sm { padding: .3rem .6rem; font-size: .75rem; }

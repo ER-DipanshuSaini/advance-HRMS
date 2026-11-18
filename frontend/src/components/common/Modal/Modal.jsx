@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import styles from './Modal.module.css';
 
-export default function Modal({ isOpen, onClose, title, children, footer, size = 'md' }) {
+export default function Modal({ isOpen, onClose, title, children, footer, size = 'md', variant = 'dialog' }) {
   const ref = useRef(null);
   const titleId = useId();
 
@@ -21,10 +21,16 @@ export default function Modal({ isOpen, onClose, title, children, footer, size =
   if (!isOpen) return null;
 
   return createPortal(
-    <dialog ref={ref} className={[styles.modal, styles[size]].join(' ')} aria-labelledby={titleId}
-      onCancel={event => { event.preventDefault(); onClose(); }}>
+    <dialog ref={ref} className={[styles.modal, styles[size], styles[variant]].join(' ')} aria-labelledby={titleId}
+      onCancel={event => { event.preventDefault(); onClose(); }}
+      onClick={event => {
+        if (event.target !== event.currentTarget) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        if (event.clientX < bounds.left || event.clientX > bounds.right ||
+            event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
+      }}>
       <header className={styles.header}>
-        <h2 id={titleId}>{title}</h2>
+        <h2 id={titleId} className={styles.title}>{title}</h2>
         <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close dialog">
           <X size={19} aria-hidden="true" />
         </button>

@@ -1,3 +1,4 @@
+import Modal from '../../components/common/Modal/Modal';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Send, FileText, Trash2, Star, Search, Inbox, RefreshCw, Pencil, ChevronRight, ChevronLeft, X, Check, Plus, Filter, ShieldCheck, Database, Zap, Server, UserCheck } from 'lucide-react';
@@ -262,9 +263,11 @@ export default function EmailClient() {
   };
 
   const handleAddAccount = async (config) => {
+    const editing = Boolean(editingAccount?.id);
+    const endpoint = editing ? API_BASE + '/accounts/' + editingAccount.id + '/' : API_BASE + '/accounts/';
     try {
-      const res = await apiClient(`${API_BASE}/accounts/`, {
-        method: 'POST',
+      const res = await apiClient(endpoint, {
+        method: editing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
       });
@@ -272,7 +275,7 @@ export default function EmailClient() {
       await fetchAccounts(res.id);
 
       setShowConfigModal(false);
-      setToast({ message: 'Account connected! Welcome to your new inbox.', type: 'success' });
+      setToast({ message: editing ? 'Account updated.' : 'Account connected.', type: 'success' });
     } catch (err) {
       setToast({ message: 'Failed to add account.', type: 'error' });
       throw err; // Re-throw to let modal know it failed
@@ -295,6 +298,28 @@ export default function EmailClient() {
       setToast({ message: 'Error removing account.', type: 'error' });
     }
   };
+
+  async function updateExtraction() {
+    if (!activeAccountId) return;
+    const enabled = !extractionEnabled;
+    setIsUpdatingExtraction(true);
+    try {
+      await apiClient(API_BASE + '/accounts/' + activeAccountId + '/', {
+        method: 'PATCH',
+        body: JSON.stringify({ is_etl_enabled: enabled }),
+      });
+      setExtractionEnabled(enabled);
+      setAccounts(previous => previous.map(account =>
+        account.id === activeAccountId ? { ...account, is_etl_enabled: enabled } : account
+      ));
+      setShowExtractionModal(false);
+      setToast({ message: enabled ? 'Résumé extraction enabled.' : 'Résumé extraction paused.', type: 'success' });
+    } catch {
+      setToast({ message: 'Failed to update extraction settings.', type: 'error' });
+    } finally {
+      setIsUpdatingExtraction(false);
+    }
+  }
 
   const formatLastSync = (dateStr) => {
     if (!dateStr) return 'Never';
@@ -399,110 +424,26 @@ export default function EmailClient() {
       {/* Toast */}
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
-      {/* Remove Account Confirmation */}
-      {confirmRemove && (() => {
-        const acc = Array.isArray(accounts) ? accounts.find(a => a.id === confirmRemove) : null;
-        return (
-          <div className={styles.confirmOverlay}>
-            <div className={styles.confirmBox}>
-              <div className={styles.confirmIcon}><Trash2 size={22} /></div>
-              <h4 className={styles.confirmTitle}>Remove Account</h4>
-              <p className={styles.confirmMsg}>
-                Are you sure you want to remove <strong>{acc?.email_address || acc?.email}</strong>? This cannot be undone.
-              </p>
-              <div className={styles.confirmActions}>
-                <Button variant="outline" onClick={() => setConfirmRemove(null)}>Cancel</Button>
-                <Button variant="danger" onClick={() => handleRemoveAccount(confirmRemove)}>Remove</Button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      <Modal isOpen={Boolean(confirmRemove)} onClose={() => setConfirmRemove(null)} size="sm" title="Remove account"
+        footer={<>
+          <Button variant="outline" onClick={() => setConfirmRemove(null)}>Cancel</Button>
+          <Button variant="danger" onClick={() => handleRemoveAccount(confirmRemove)}>Remove</Button>
+        </>}>
+        <p>Remove <strong>{accounts.find(account => account.id === confirmRemove)?.email_address}</strong> from HireFlow?</p>
+      </Modal>
 
-      {/* Extraction Config Modal */}
-      {showExtractionModal && (
-        <div className={styles.confirmOverlay}>
-          <div className={styles.extractionModalBox}>
-            <div className={styles.extractionHeader}>
-              <div className={styles.extractionIcon}><Database size={24} /></div>
-              <h4 className={styles.confirmTitle}>
-                {extractionEnabled ? 'Pause Resume Extraction?' : 'Enable Resume Extraction?'}
-              </h4>
-            </div>
-
-            <div className={styles.extractionBody}>
-              {extractionEnabled ? (
-                <p className={styles.extractionTextMain}>Are you sure you want to pause Resume Extraction for <strong>{activeAccount?.email_address}</strong>? The automated cron parser will safely halt and resume parsing will stop immediately.</p>
-              ) : (
-                <>
-                  <p className={styles.extractionTextMain}>Setting up <strong>{activeAccount?.email_address}</strong> for automated HR pipeline parsing.</p>
-
-                  <ul className={styles.extractionList}>
-                    <li>
-                      <Zap size={15} className={styles.liIcon} />
-                      <span><strong>Automated Processing:</strong> Runs reliably twice a day at 12:00 AM & 12:00 PM efficiently.</span>
-                    </li>
-                    <li>
-                      <Server size={15} className={styles.liIcon} />
-                      <span><strong>Centralized DB:</strong> Discovered resumes are seamlessly routed into the Candidate Database.</span>
-                    </li>
-                    <li>
-                      <UserCheck size={15} className={styles.liIcon} />
-                      <span><strong>Dashboard Sync:</strong> Profiles instantly populate available slots in the Recruitment Dashboard based on matched roles.</span>
-                    </li>
-                  </ul>
-                </>
-              )}
-            </div>
-
-            <div className={styles.extractionPrivacyBox}>
-              <ShieldCheck size={16} className={styles.privacyIcon} />
-              <div className={styles.privacyText}>
-                <strong>Privacy Guaranteed</strong>
-                <span>This engine strictly scans incoming application attachments. No internal email communication or personal data is collected.</span>
-              </div>
-            </div>
-
-            <div className={styles.confirmActions} style={{ marginTop: '0.5rem' }}>
-              <Button variant="outline" onClick={() => setShowExtractionModal(false)}>Cancel</Button>
-              <Button
-                variant={extractionEnabled ? "danger" : "primary"}
-                loading={isUpdatingExtraction}
-                onClick={async () => {
-                  if (!activeAccountId) return;
-                  setIsUpdatingExtraction(true);
-                  try {
-                    const newValue = !extractionEnabled;
-                    await apiClient(`${API_BASE}/accounts/${activeAccountId}/`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ is_etl_enabled: newValue })
-                    });
-
-                    setExtractionEnabled(newValue);
-                    // Update local accounts state to keep it in sync
-                    setAccounts(prev => prev.map(acc =>
-                      acc.id === activeAccountId ? { ...acc, is_etl_enabled: newValue } : acc
-                    ));
-
-                    setShowExtractionModal(false);
-                    setToast({
-                      message: newValue ? 'Resume extraction enabled!' : 'Resume extraction deactivated.',
-                      type: 'success'
-                    });
-                  } catch (err) {
-                    setToast({ message: 'Failed to update extraction settings.', type: 'error' });
-                  } finally {
-                    setIsUpdatingExtraction(false);
-                  }
-                }}
-              >
-                {extractionEnabled ? 'Pause Extraction' : 'Enable Extraction'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal isOpen={showExtractionModal} onClose={() => { if (!isUpdatingExtraction) setShowExtractionModal(false); }}
+        title={extractionEnabled ? 'Pause résumé extraction' : 'Enable résumé extraction'}
+        footer={<>
+          <Button variant="outline" disabled={isUpdatingExtraction} onClick={() => setShowExtractionModal(false)}>Cancel</Button>
+          <Button variant={extractionEnabled ? 'danger' : 'primary'} loading={isUpdatingExtraction} onClick={updateExtraction}>
+            {extractionEnabled ? 'Pause extraction' : 'Enable extraction'}
+          </Button>
+        </>}>
+        <p>{extractionEnabled ? 'Pause scheduled résumé extraction for ' : 'Enable scheduled PDF and DOCX résumé extraction for '}
+          <strong>{activeAccount?.email_address}</strong>.
+        </p>
+      </Modal>
 
       {configured ? (
         <div className={styles.emailShell}>

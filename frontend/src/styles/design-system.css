@@ -9,19 +9,8 @@ button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 :focus-visible { outline: 2px solid var(--focus-color); outline-offset: 3px; }
 .page-stack { display: grid; gap: var(--space-lg); min-width: 0; }
-.page-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-md); }
-.ui-panel { background: var(--surface-color); border: var(--border-subtle); border-radius: var(--border-radius-lg); padding: var(--space-md); min-width: 0; }
 .page-state { display: grid; gap: .35rem; justify-items: center; text-align: center; padding: var(--space-xl) var(--space-md); overflow-wrap: anywhere; }
 .page-state[role='alert'] strong { color: var(--danger); }
-.table-scroll { overflow-x: auto; }
-.ui-table { width: 100%; border-collapse: collapse; text-align: left; }
-.ui-table th, .ui-table td { padding: .8rem; border-bottom: var(--border-subtle); vertical-align: middle; }
-.ui-table th { background: var(--surface-hover); color: var(--text-secondary); font-size: var(--text-sm); }
-.ui-table td a { font-weight: 650; }
-.ui-table tbody tr:last-child td { border-bottom: 0; }
-.form-field { display: grid; gap: .35rem; font-weight: 600; color: var(--text-secondary); }
-.form-field :is(input, select, textarea), .ui-control { min-height: var(--control-height); max-width: 100%; border: var(--border-subtle); border-radius: var(--border-radius-md); padding: .5rem .65rem; background: var(--surface-color); color: var(--text-primary); font-weight: 400; }
-.form-field textarea { resize: vertical; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }

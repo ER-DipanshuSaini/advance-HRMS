@@ -1,3 +1,5 @@
+import Input from '../../components/common/Input/Input';
+import Select from '../../components/common/Select/Select';
 import Button from '../../components/common/Button/Button';
 import styles from './RecruitmentDetails.module.css';
 import React, { useEffect, useState } from 'react';
@@ -60,9 +62,9 @@ export default function ApplicationWorkflow({ endpoint, applicationId, canEdit, 
             <p>{interview.interviewer_name || `Employee #${interview.interviewer}`} · {new Date(interview.scheduled_at).toLocaleString()} · {interview.duration_minutes} min</p>
             {canScore(interview) ? (
               <form onSubmit={event => submit(event, `interviews/${interview.id}/scorecard/`, 'PATCH')}>
-                <label className="form-field">Technical score <input name="technical_score" type="number" min="1" max="5" defaultValue={interview.technical_score ?? ''} required /></label>
-                <label className="form-field">Communication score <input name="communication_score" type="number" min="1" max="5" defaultValue={interview.communication_score ?? ''} required /></label>
-                <label className="form-field">Feedback <textarea name="feedback" defaultValue={interview.feedback} /></label>
+                <Input label="Technical score" name="technical_score" type="number" min="1" max="5" defaultValue={interview.technical_score ?? ''} required />
+                <Input label="Communication score" name="communication_score" type="number" min="1" max="5" defaultValue={interview.communication_score ?? ''} required />
+                <Input as="textarea" label="Feedback" name="feedback" defaultValue={interview.feedback} />
                 <Button type="submit" loading={busy}>Save scorecard</Button>
               </form>
             ) : interview.technical_score && (
@@ -74,12 +76,12 @@ export default function ApplicationWorkflow({ endpoint, applicationId, canEdit, 
           <form onSubmit={event => submit(event, 'interviews/', 'POST', data => ({
             ...data, scheduled_at: new Date(data.scheduled_at).toISOString(),
           }))}>
-            <label className="form-field">Interviewer <select name="interviewer" required defaultValue="">
+            <Select label="Interviewer" name="interviewer" required defaultValue="">
               <option value="" disabled>Select employee</option>
               {details.interviewers.map(employee => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
-            </select></label>
-            <label className="form-field">Interview time <input name="scheduled_at" type="datetime-local" required /></label>
-            <label className="form-field">Minutes <input name="duration_minutes" type="number" defaultValue="30" min="5" max="480" required /></label>
+            </Select>
+            <Input label="Interview time" name="scheduled_at" type="datetime-local" required />
+            <Input label="Minutes" name="duration_minutes" type="number" defaultValue="30" min="5" max="480" required />
             <Button type="submit" loading={busy}>Schedule interview</Button>
           </form>
         )}
@@ -87,17 +89,17 @@ export default function ApplicationWorkflow({ endpoint, applicationId, canEdit, 
         {details.offer && <p>{details.offer.status} · ₹{details.offer.annual_salary_lpa} LPA · Start {details.offer.start_date}</p>}
         {canEdit && (!details.offer || details.offer.status === 'DRAFT') && (
           <form onSubmit={event => submit(event, 'offer/', 'PUT')}>
-            <label className="form-field">Salary in LPA <input name="annual_salary_lpa" type="number" min="0.01" step="0.01" defaultValue={details.offer?.annual_salary_lpa} required /></label>
-            <label className="form-field">Start date <input name="start_date" type="date" defaultValue={details.offer?.start_date} required /></label>
+            <Input label="Salary in LPA" name="annual_salary_lpa" type="number" min="0.01" step="0.01" defaultValue={details.offer?.annual_salary_lpa} required />
+            <Input label="Start date" name="start_date" type="date" defaultValue={details.offer?.start_date} required />
             <Button type="submit" loading={busy}>Save draft offer</Button>
           </form>
         )}
         {canEdit && details.offer && NEXT_OFFER_STATUS[details.offer.status] && (
           <form onSubmit={event => submit(event, 'offer/', 'PUT')}>
-            <label className="form-field">Offer status <select name="status" required defaultValue="">
+            <Select label="Offer status" name="status" required defaultValue="">
               <option value="" disabled>Select status</option>
               {NEXT_OFFER_STATUS[details.offer.status].map(status => <option key={status} value={status}>{status}</option>)}
-            </select></label>
+            </Select>
             <Button type="submit" loading={busy}>Update offer status</Button>
           </form>
         )}

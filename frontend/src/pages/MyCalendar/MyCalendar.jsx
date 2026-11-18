@@ -1,3 +1,8 @@
+import Select from '../../components/common/Select/Select';
+import Input from '../../components/common/Input/Input';
+import Card from '../../components/common/Card/Card';
+import Modal from '../../components/common/Modal/Modal';
+import Button from '../../components/common/Button/Button';
 import React, { useState, useEffect, useRef, Fragment } from 'react';
 import {
   Clock, LogIn, LogOut, CheckCircle2, X,
@@ -223,6 +228,11 @@ export default function MyCalendar() {
     setDrawerType('dayDetail');
   };
 
+  function updateLeaveField(field, value) {
+    setLeaveForm(current => ({ ...current, [field]: value }));
+    setFormErrors(current => ({ ...current, [field]: false }));
+  }
+
   const handleLeaveSubmit = async () => {
     try {
       const errors = {
@@ -430,7 +440,7 @@ export default function MyCalendar() {
 
       {/* ── MAIN ────────────────────────────────────────── */}
       <div className={styles.mainLayout}>
-        <div className={styles.calendarCard}>
+        <Card variant="calendar" noPadding>
           <CalendarHeader
             viewMode={viewMode}
             setViewMode={setViewMode}
@@ -583,7 +593,7 @@ export default function MyCalendar() {
               )}
             </motion.div>
           </AnimatePresence>
-        </div>
+        </Card>
 
         <StatsSection
           summary={summary}
@@ -595,82 +605,25 @@ export default function MyCalendar() {
       </div>
 
       {/* ── DRAWERS ─────────────────────────────────────── */}
-      <AnimatePresence>
-        {drawerType && (
-          <>
-            <motion.div
-              className={styles.drawerOverlay}
-              onClick={() => setDrawerType(null)}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            />
-            <motion.div
-              className={styles.drawer}
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            >
-              <div className={styles.drawerHeader}>
-                <h3 className={styles.drawerTitle}>
-                  {drawerType === 'leave' ? 'Apply Leave' :
-                    `${selectedDay?.date ? new Date(selectedDay.date + 'T00:00:00').toLocaleDateString('en-IN', {
-                      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-                    }) : 'Day Details'}`}
-                </h3>
-                <button type="button" aria-label="Close calendar details" className={styles.drawerClose} onClick={() => setDrawerType(null)}>
-                  <X size={16} />
-                </button>
-              </div>
-              <div className={styles.drawerBody}>
-                {drawerType === 'leave' && (
-                  <>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Leave Type <span style={{color: '#ef4444'}}>*</span></label>
-                      <select 
-                        className={styles.formSelect} 
-                        style={{ borderColor: formErrors.type ? '#ef4444' : '' }}
-                        value={leaveForm.type} 
-                        onChange={e => { setLeaveForm({ ...leaveForm, type: e.target.value }); setFormErrors({...formErrors, type: false}); }}
-                      >
-                        <option value="CL">Casual Leave</option>
-                        <option value="PL">Privilege Leave</option>
-                        <option value="SL">Sick Leave</option>
-                      </select>
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>From Date <span style={{color: '#ef4444'}}>*</span></label>
-                      <input 
-                        className={styles.formInput} 
-                        type="date" 
-                        style={{ borderColor: formErrors.from ? '#ef4444' : '' }}
-                        value={leaveForm.from} 
-                        onChange={e => { setLeaveForm({ ...leaveForm, from: e.target.value }); setFormErrors({...formErrors, from: false}); }} 
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>To Date <span style={{color: '#ef4444'}}>*</span></label>
-                      <input 
-                        className={styles.formInput} 
-                        type="date" 
-                        style={{ borderColor: formErrors.to ? '#ef4444' : '' }}
-                        value={leaveForm.to} 
-                        onChange={e => { setLeaveForm({ ...leaveForm, to: e.target.value }); setFormErrors({...formErrors, to: false}); }} 
-                      />
-                    </div>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Reason <span style={{color: '#ef4444'}}>*</span></label>
-                      <textarea 
-                        className={styles.formTextarea} 
-                        placeholder="Briefly explain..." 
-                        style={{ borderColor: formErrors.reason ? '#ef4444' : '' }}
-                        value={leaveForm.reason} 
-                        onChange={e => { setLeaveForm({ ...leaveForm, reason: e.target.value }); setFormErrors({...formErrors, reason: false}); }} 
-                      />
-                    </div>
-                    <button className={styles.submitBtn} onClick={handleLeaveSubmit}>Submit Leave Request</button>
-                  </>
+      <Modal isOpen={Boolean(drawerType)} onClose={() => setDrawerType(null)} variant="drawer"
+        title={drawerType === 'leave' ? 'Apply Leave' : selectedDay?.date ?
+          new Date(selectedDay.date + 'T00:00:00').toLocaleDateString('en-IN', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+          }) : 'Day Details'}>
+        {drawerType === 'leave' && (
+                  <div className="flex flex-col gap-6">
+                    <Select label="Leave Type" required value={leaveForm.type} aria-invalid={Boolean(formErrors.type)}
+                      onChange={event => updateLeaveField('type', event.target.value)}>
+                      <option value="CL">Casual Leave</option>
+                      <option value="PL">Privilege Leave</option>
+                      <option value="SL">Sick Leave</option>
+                    </Select>
+                    <Input label="From Date" type="date" required value={leaveForm.from} aria-invalid={Boolean(formErrors.from)} onChange={event => updateLeaveField('from', event.target.value)} />
+                    <Input label="To Date" type="date" required value={leaveForm.to} aria-invalid={Boolean(formErrors.to)} onChange={event => updateLeaveField('to', event.target.value)} />
+                    <Input as="textarea" label="Reason" rows={4} required value={leaveForm.reason}
+                      aria-invalid={Boolean(formErrors.reason)} onChange={event => updateLeaveField('reason', event.target.value)} />
+                    <Button onClick={handleLeaveSubmit}>Submit Leave Request</Button>
+                  </div>
                 )}
                 {drawerType === 'dayDetail' && selectedDay && (
                   <div className={styles.dayDetailGrid}>
@@ -716,11 +669,7 @@ export default function MyCalendar() {
                     )}
                   </div>
                 )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
     </motion.div>

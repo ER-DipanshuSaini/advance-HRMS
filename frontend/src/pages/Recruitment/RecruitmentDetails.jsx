@@ -1,3 +1,6 @@
+import Card from '../../components/common/Card/Card';
+import Select from '../../components/common/Select/Select';
+import PageLayout from '../../components/common/PageLayout';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -65,13 +68,13 @@ export default function RecruitmentDetails() {
   }
 
   return (
-    <section className="page-stack">
+    <PageLayout>
       <Link className={styles.back} to="/recruitment"><ArrowLeft size={16} aria-hidden="true" /> Recruitment</Link>
       {error && <PageState title="Recruitment request failed" tone="error"
         action={{ label: 'Reload job', run: () => refresh() }}>{error}</PageState>}
       {!data && !error && <PageState title="Loading job..." />}
       {data && <>
-        <header className="ui-panel">
+        <Card as="header">
           <h1>{data.job.title}</h1>
           <p className={styles.meta}>
             {[data.job.job_id, data.job.department_name, data.job.location].filter(Boolean).map((value, index) =>
@@ -79,9 +82,9 @@ export default function RecruitmentDetails() {
           </p>
           {data.job.job_description && <p className={styles.description}>{data.job.job_description}</p>}
           {data.job.requirements && <p className={styles.description}><strong>Required skills</strong> {data.job.requirements}</p>}
-        </header>
+        </Card>
 
-        <section className="ui-panel" aria-labelledby="candidate-matches">
+        <Card as="section" aria-labelledby="candidate-matches">
           <h2 id="candidate-matches">Matched candidates</h2>
           {data.matches.length ? <ul className={styles.list}>{data.matches.map(candidate => (
             <li key={candidate.id} className={styles.row}>
@@ -92,9 +95,9 @@ export default function RecruitmentDetails() {
               </div>
             </li>
           ))}</ul> : <PageState title="No new candidates match these skills" />}
-        </section>
+        </Card>
 
-        <section className="ui-panel" aria-labelledby="job-applications">
+        <Card as="section" aria-labelledby="job-applications">
           <h2 id="job-applications">Applications</h2>
           {credentials && <div className={styles.rowHeader} role="status">
             <p>Temporary password for employee {credentials.employee} <code>{credentials.generated_password}</code></p>
@@ -111,11 +114,11 @@ export default function RecruitmentDetails() {
                     {application.employee && <p>Employee #{application.employee}</p>}
                   </div>
                   <div className={styles.actions}>
-                    {canEdit && !application.employee ? <select className="ui-control"
+                    {canEdit && !application.employee ? <Select label="Stage"
                       aria-label={'Stage for ' + application.candidate_name} value={application.current_stage} disabled={busy}
                       onChange={event => change(path + 'stage/', 'PATCH', { current_stage: event.target.value })}>
                       {Object.entries(stages).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-                    </select> : <span>{stages[application.current_stage] || application.current_stage}</span>}
+                    </Select> : <span>{stages[application.current_stage] || application.current_stage}</span>}
                     <Button variant="outline" aria-expanded={expanded === application.id} aria-controls={detailsId}
                       onClick={() => setExpanded(expanded === application.id ? null : application.id)}>
                       {expanded === application.id ? 'Hide details' : 'View details'}
@@ -131,8 +134,8 @@ export default function RecruitmentDetails() {
               </li>
             );
           })}</ul> : <PageState title="No applications yet" />}
-        </section>
+        </Card>
       </>}
-    </section>
+    </PageLayout>
   );
 }

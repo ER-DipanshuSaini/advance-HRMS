@@ -1,4 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { usePopover } from '../../hooks/usePopover';
+import Modal from '../../components/common/Modal/Modal';
+import Input from '../../components/common/Input/Input';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Trash2, ChevronDown, X, Check, AlertCircle, Plus, ShieldCheck } from 'lucide-react';
 import { apiClient } from '../../api/apiClient';
@@ -59,34 +62,18 @@ export function AccountConfigModal({ onClose, onSave, onToast, editAccount = nul
       setValidationError(err.message || 'Connection error. Check settings.');
     } finally {
       setIsValidating(false);
-      // We don't set setIsSyncingInitial(false) here because if onSave finishes, modal closes anyway
+      setIsSyncingInitial(false);
     }
   };
 
   return (
-    <div className={styles.configOverlay} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div
-        className={styles.configModal}
-        initial={{ scale: 0.94, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-      >
-        <div className={styles.configHeader}>
-          <div className={styles.configHeaderLeft}>
-            <div className={styles.configIconBox}><Mail size={18} /></div>
-            <div>
-              <h3 className={styles.configTitle}>{editAccount ? 'Edit Account' : 'Add Email Account'}</h3>
-              <div className={styles.stepperContainer}>
-                {[1, 2].map(n => (
-                  <div key={n} className={`${styles.stepDot} ${step >= n ? styles.stepDotActive : ''}`} />
-                ))}
-                <span className={styles.configSub}>Step {step} of 2: {step === 1 ? 'Choose Provider' : 'Enter Credentials'}</span>
-              </div>
-            </div>
-          </div>
-          <button className={styles.configCloseBtn} onClick={onClose}><X size={17} /></button>
-        </div>
-
-        <div className={styles.configBody}>
+    <Modal isOpen onClose={() => { if (!isValidating && !isSyncingInitial) onClose(); }}
+      title={editAccount ? 'Edit email account' : 'Add email account'} size="lg"
+      footer={!isSyncingInitial && step === 2 && <>
+        <Button variant="outline" disabled={isValidating} onClick={() => setStep(1)}>Back</Button>
+        <Button loading={isValidating} onClick={handleValidate}>Validate and connect</Button>
+      </>}>
+      <p className={styles.configSub}>Step {step} of 2 · {step === 1 ? 'Choose provider' : 'Enter credentials'}</p>
           {isSyncingInitial ? (
             <div className={styles.syncLoadingState}>
               <div className={styles.syncLoadingIcon}>
@@ -95,7 +82,7 @@ export function AccountConfigModal({ onClose, onSave, onToast, editAccount = nul
               </div>
               <h4 className={styles.syncLoadingTitle}>Validation Success!</h4>
               <p className={styles.syncLoadingMsg}>
-                Your credentials are secure. We're now fetching your some of emails to get you started...
+                Saving your mailbox settings...
               </p>
               <div className={styles.inlineLoader}>
                 <div className={styles.inlineLoaderBar} />
@@ -122,23 +109,14 @@ export function AccountConfigModal({ onClose, onSave, onToast, editAccount = nul
           ) : (
             <div className={styles.configForm}>
               <div className={styles.configFormGrid}>
-                <div className={styles.configFormGroup}>
-                  <label>Display Name</label>
-                  <input className={styles.configInput} placeholder="e.g. Sarah J." value={config.display_name} onChange={e => setConfig({ ...config, display_name: e.target.value })} />
-                </div>
-                <div className={styles.configFormGroup}>
-                  <label>Email Address</label>
-                  <input className={styles.configInput} type="email" placeholder="name@company.com" value={config.email_address} onChange={e => setConfig({ ...config, email_address: e.target.value })} />
-                </div>
-                <div className={styles.configFormGroup}>
-                  <label>Application Password</label>
-                  <input className={styles.configInput} type="password" placeholder="••••••••••••" value={config.password} onChange={e => setConfig({ ...config, password: e.target.value })} />
-                </div>
+                <Input label="Display Name" placeholder="e.g. Sarah J." value={config.display_name} onChange={e => setConfig({ ...config, display_name: e.target.value })} />
+                <Input label="Email Address" type="email" placeholder="name@company.com" value={config.email_address} onChange={e => setConfig({ ...config, email_address: e.target.value })} />
+                <Input label="Application Password" type="password" value={config.password} onChange={e => setConfig({ ...config, password: e.target.value })} />
 
                 {config.provider === 'custom' && (
                   <>
-                    <div className={styles.configFormGroup}><label>IMAP Host</label><input className={styles.configInput} value={config.imap_host} onChange={e => setConfig({ ...config, imap_host: e.target.value })} /></div>
-                    <div className={styles.configFormGroup}><label>SMTP Host</label><input className={styles.configInput} value={config.smtp_host} onChange={e => setConfig({ ...config, smtp_host: e.target.value })} /></div>
+                    <Input label="IMAP Host" value={config.imap_host} onChange={e => setConfig({ ...config, imap_host: e.target.value })} />
+                    <Input label="SMTP Host" value={config.smtp_host} onChange={e => setConfig({ ...config, smtp_host: e.target.value })} />
                   </>
                 )}
               </div>
@@ -154,51 +132,23 @@ export function AccountConfigModal({ onClose, onSave, onToast, editAccount = nul
               )}
             </div>
           )}
-        </div>
-
-        {!isSyncingInitial && (
-          <div className={styles.configFooter}>
-            {step === 2 && <Button variant="outline" onClick={() => setStep(1)}>Back</Button>}
-            <span style={{ flex: 1 }} />
-            {step === 2 && (
-              <Button
-                variant="primary"
-                loading={isValidating}
-                onClick={handleValidate}
-              >
-                {isValidating ? 'Validating...' : 'Validate & Connect'}
-              </Button>
-            )}
-          </div>
-        )}
-      </motion.div>
-    </div>
+    </Modal>
   );
 }
 
-
-/* ═══════════════════════════════════════════════════
-   ACCOUNT SWITCHER DROPDOWN
-═══════════════════════════════════════════════════ */
 export function AccountSwitcher({ accounts, activeId, onSwitch, onAdd, onEdit, onRemove }) {
-  const [open, setOpen] = useState(false);
+  const { isOpen: open, containerRef, panelId, close, trigger } = usePopover();
   const active = (Array.isArray(accounts) && accounts.find(a => a.id === activeId)) || (accounts?.[0]) || {
     email: 'No Account',
     provider: 'custom',
     avatar: '?',
     avatarColor: '#94a3b8'
   };
-  const ref = useRef(null);
 
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   return (
-    <div className={styles.accountSwitcherWrap} ref={ref}>
-      <button className={styles.accountSwitcherBtn} onClick={() => setOpen(o => !o)}>
+    <div className={styles.accountSwitcherWrap} ref={containerRef}>
+      <button className={styles.accountSwitcherBtn} {...trigger}>
         <div className={styles.accountMeta}>
           <span className={styles.accountEmail}>{active.email_address || active.email}</span>
           <span className={styles.accountDisplayName}>{active.display_name || 'Switch Account'}</span>
@@ -209,7 +159,7 @@ export function AccountSwitcher({ accounts, activeId, onSwitch, onAdd, onEdit, o
       <AnimatePresence>
         {open && (
           <motion.div
-            className={styles.accountDropdown}
+            id={panelId} className={styles.accountDropdown}
             initial={{ opacity: 0, y: 8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.95 }}
@@ -222,14 +172,14 @@ export function AccountSwitcher({ accounts, activeId, onSwitch, onAdd, onEdit, o
                 <div
                   key={acc.id}
                   className={`${styles.dropdownAccountRow} ${acc.id === activeId ? styles.dropdownAccountActive : ''}`}
-                  onClick={() => { onSwitch(acc.id); setOpen(false); }}
+                  onClick={() => { onSwitch(acc.id); close(); }}
                 >
                   <div className={styles.dropdownAccountHeader}>
                     <span className={styles.dropdownEmail}>{acc.email_address || acc.email}</span>
                     <button
                       className={styles.dropdownRemoveBtn}
-                      title={`Remove ${acc.email}`}
-                      onClick={(e) => { e.stopPropagation(); setOpen(false); onRemove(acc.id); }}
+                      aria-label={`Remove ${acc.email_address || acc.email}`}
+                      onClick={(e) => { e.stopPropagation(); close(); onRemove(acc.id); }}
                     >
                       <Trash2 size={13} />
                     </button>
@@ -244,7 +194,7 @@ export function AccountSwitcher({ accounts, activeId, onSwitch, onAdd, onEdit, o
 
             <div className={styles.dropdownDivider} />
 
-            <button className={styles.dropdownAddBtn} onClick={() => { onAdd(); setOpen(false); }}>
+            <button className={styles.dropdownAddBtn} onClick={() => { onAdd(); close(); }}>
               <Plus size={16} /> Add another account
             </button>
           </motion.div>

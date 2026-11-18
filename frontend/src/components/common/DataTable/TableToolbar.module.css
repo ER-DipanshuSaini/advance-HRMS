@@ -1,0 +1,9 @@
+.toolbar, .filterBar { padding: 1rem 1.5rem; background: #fafbfc; border-bottom: 1px solid #f1f5f9; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem; }
+.search { position: relative; display: flex; align-items: center; width: min(100%, 420px); }
+.search svg { position: absolute; left: 14px; color: #94a3b8; pointer-events: none; }
+.search input { width: 100%; padding: .65rem 1rem .65rem 2.85rem; border-radius: 12px; border: 1px solid #e2e8f0; font: inherit; font-size: .8125rem; }
+.search input:focus { border-color: var(--primary); }
+.filterBar:not([hidden]) { display: flex; align-items: end; flex-wrap: wrap; gap: .75rem; }
+.filterBar { padding-block: .75rem; }
+.filterBar > div { min-width: min(100%, 10rem); }

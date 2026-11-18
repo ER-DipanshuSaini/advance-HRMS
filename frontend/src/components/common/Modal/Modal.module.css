@@ -95,3 +95,19 @@
 .modal:not([open]) { display: none; }
 .modal::backdrop { background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(10px); }
 .modal[open] { width: calc(100% - 3rem); }
+/* The side sheet keeps the calendar's existing dimensions. */
+.modal.drawer[open] {
+  width: min(100%, 460px);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0 0 0 auto;
+  border-radius: 0;
+  border-left: 1px solid rgb(255 255 255 / .3);
+  background: rgb(255 255 255 / .95);
+  backdrop-filter: blur(20px);
+  box-shadow: -10px 0 40px rgb(0 0 0 / .15);
+}
+.drawer::backdrop { background: rgb(15 23 42 / .6); backdrop-filter: blur(8px); }
+.drawer .header, .drawer .body { padding: 2rem; }
+.drawer .title { font-size: 1.25rem; font-weight: 900; }

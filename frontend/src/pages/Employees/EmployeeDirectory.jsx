@@ -1,18 +1,22 @@
+import PageLayout from '../../components/common/PageLayout';
+import Select from '../../components/common/Select/Select';
 import { useOutletContext } from 'react-router-dom';
 import { hasPermission } from '../../session';
-import PageState from '../../components/common/PageState';
+import DataTable from '../../components/common/DataTable/DataTable';
+import TableToolbar from '../../components/common/DataTable/TableToolbar';
+import MetricStrip from '../../components/common/MetricStrip/MetricStrip';
+import PageHeader from '../../components/common/PageHeader/PageHeader';
 import { resolveMediaUrl } from '../../api/apiClient';
 import { useState, useEffect, useMemo } from 'react';
 import {
   Users, Plus, Mail, ShieldCheck, Building2, UserCircle,
-  Search, Filter, CheckCircle2, Copy, ExternalLink, Calendar,
+  CheckCircle2, Copy, ExternalLink, Calendar,
   Phone, Hash, UserPlus, Fingerprint, AlertCircle,
-  ChevronDown, X
+  X
 } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { useModal } from '../../hooks/useModal';
 import Button from '../../components/common/Button/Button';
-import Card from '../../components/common/Card/Card';
 import Input from '../../components/common/Input/Input';
 import Badge from '../../components/common/Badge/Badge';
 import Modal from '../../components/common/Modal/Modal';
@@ -32,7 +36,6 @@ export default function EmployeeDirectory() {
   const [meta, setMeta] = useState({ depts: [], desigs: [], roles: [] });
 
   // Advanced Filter State
-  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     role: '',
     department: '',
@@ -158,228 +161,77 @@ export default function EmployeeDirectory() {
     setToast({ message: `${label} copied to clipboard!`, type: 'success' });
   };
 
+  function clearFilters() {
+    setSearch('');
+    setFilters({ role: '', department: '', status: '' });
+  }
+
+
+  const columns = [
+    { key: 'number', label: 'S.No', width: '60px', render: (_, index) => index + 1 },
+    { key: 'id', label: 'Employee ID', width: '130px', render: employee =>
+      <span className={styles.themeEmpId}>{employee.employee_id || '—'}</span> },
+    { key: 'identity', label: 'Employee', render: employee => {
+      const name = getEmpName(employee);
+      const picture = resolveMediaUrl(employee.profile?.profile_picture);
+      return <div className={styles.identityCell}>
+        <span className={styles.miniAvatar} aria-hidden="true">
+          {picture ? <img src={picture} alt="" className={styles.avatarImage} /> : name.charAt(0)}
+        </span>
+        <span className={styles.identityText}>
+          <strong className={styles.fullName}>{name}</strong>
+          <span className={styles.metaEmail}>{employee.email}</span>
+        </span>
+      </div>;
+    } },
+    { key: 'designation', label: 'Designation and department', render: employee => <div className={styles.domainStack}>
+      <span className={styles.primaryDesig}>{employee.designation_name}</span>
+      <span className={styles.secondaryDept}>{employee.department_name}</span>
+    </div> },
+    { key: 'date', label: 'Joining Date', render: employee => <span className={styles.dateCell}>
+      <Calendar size={12} aria-hidden="true" />{employee.date_of_joining ?
+        new Date(employee.date_of_joining + 'T00:00:00').toLocaleDateString('en-GB') : '—'}
+    </span> },
+    { key: 'role', label: 'Role', render: employee => <span className={styles.roleLabel}>
+      <ShieldCheck size={12} aria-hidden="true" />{employee.role_name}
+    </span> },
+    { key: 'status', label: 'Status', render: employee =>
+      <Badge variant={employee.status === 'ACTIVE' ? 'success' : 'info'}>{employee.status}</Badge> },
+  ];
+  const filterFields = [
+    { key: 'department', label: 'Department', options: [{ value: '', label: 'All departments' },
+      ...meta.depts.map(department => ({ value: String(department.id), label: department.name }))] },
+    { key: 'role', label: 'Security Role', options: [{ value: '', label: 'All roles' },
+      ...meta.roles.map(role => ({ value: role.name, label: role.name }))] },
+    { key: 'status', label: 'Employment Status', options: [{ value: '', label: 'All statuses' },
+      ...['Active', 'Inactive', 'Exited', 'Blacklist'].map(label => ({ value: label.toUpperCase(), label }))] },
+  ].map(field => ({
+    ...field, value: filters[field.key],
+    onChange: value => setFilters(current => ({ ...current, [field.key]: value })),
+  }));
+
   return (
-    <>
-
-      {/* Refined Page Header */}
-      <div className={styles.pageHeader}>
-        <div className={styles.headerInfo}>
-          <h1 className={styles.headerTitle}>Employee Directory</h1>
-        </div>
-        {hasPerm('users:add') && (
-          <Button variant="primary" icon={<Plus size={16} />} onClick={() => { setCreatedEmp(null); employeeModal.open(); }}>
-            Add employee
-          </Button>
-        )}
-      </div>
-
-      {employeesData && (
-      <div className={styles.metricsStrip}>
-        <div className={styles.metricItem}>
-          <div className={styles.metricIcon} style={{ background: '#eff6ff' }}>
-            <Users size={18} color="#2563eb" />
-          </div>
-          <div className={styles.metricContent}>
-            <span className={styles.metricLabel}>Total Employees</span>
-            <span className={styles.metricValue}>{stats.total}</span>
-          </div>
-        </div>
-        <div className={styles.metricDivider}></div>
-        <div className={styles.metricItem}>
-          <div className={styles.metricIcon} style={{ background: '#ecfdf5' }}>
-            <div className={styles.statusPing}></div>
-          </div>
-          <div className={styles.metricContent}>
-            <span className={styles.metricLabel}>Active on This Page</span>
-            <span className={styles.metricValue} style={{ color: '#059669' }}>{stats.active}</span>
-          </div>
-        </div>
-        <div className={styles.metricDivider}></div>
-        <div className={styles.metricItem}>
-          <div className={styles.metricIcon} style={{ background: '#fffbeb' }}>
-            <ExternalLink size={16} color="#d97706" />
-          </div>
-          <div className={styles.metricContent}>
-            <span className={styles.metricLabel}>Exited on This Page</span>
-            <span className={styles.metricValue}>{stats.exited}</span>
-          </div>
-        </div>
-      </div>
-      )}
-
-      <Card noPadding shadow="sm" className={styles.mainContainer}>
-        {/* Advanced Toolbar System */}
-        <div className={styles.toolbar}>
-          <div className={styles.toolbarLeft}>
-            <div className={styles.searchContainer}>
-              <Search size={16} className={styles.searchIcon} />
-              <input
-                aria-label="Search employees on this page" placeholder="Search this page by name, ID or email"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className={styles.mainSearch}
-              />
-            </div>
-            <button
-              className={`${styles.filterToggle} ${showFilters ? styles.filterActive : ''}`}
-              aria-expanded={showFilters} onClick={() => setShowFilters(value => !value)}
-            >
-              <Filter size={14} />
-              <span>Filters</span>
-              <ChevronDown size={14} className={showFilters ? styles.rotate180 : ''} />
-            </button>
-          </div>
-
-          {(filters.role || filters.department || filters.status) && (
-            <button className={styles.clearFilters} onClick={() => setFilters({ role: '', department: '', status: '' })}>
-              Reset Filters
-            </button>
-          )}
-        </div>
-
-        {/* Collapsible Filters Bar */}
-        {showFilters && (
-          <div className={styles.deepFilterBar}>
-            <div className={styles.filterGrid}>
-              <div className={styles.filterItem}>
-                <label>Department</label>
-                <select value={filters.department} onChange={e => setFilters({ ...filters, department: e.target.value })}>
-                  <option value="">All Departments</option>
-                  {meta.depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-              </div>
-              <div className={styles.filterItem}>
-                <label>Security Role</label>
-                <select value={filters.role} onChange={e => setFilters({ ...filters, role: e.target.value })}>
-                  <option value="">All Roles</option>
-                  {meta.roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-                </select>
-              </div>
-              <div className={styles.filterItem}>
-                <label>Employment Status</label>
-                <select value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}>
-                  <option value="">All Status</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
-                  <option value="EXITED">Exited</option>
-                  <option value="BLACKLIST">Blacklist</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className={styles.tableResponsive} role="region" aria-label="Employee directory table" tabIndex={0}>
-          <table className={styles.saasTable}>
-            <thead>
-              <tr>
-
-                <th style={{ width: '60px' }}>S.No</th>
-                <th style={{ width: '130px' }}>Employee ID</th>
-                <th>Employee</th>
-                <th>Designation and department</th>
-                <th>Joining Date</th>
-                <th>Role</th>
-                <th>Status</th>
-
-              </tr>
-            </thead>
-            <tbody>
-              {employeesError ? (
-                <tr><td colSpan={7} className={styles.emptyState}><PageState title="Employees could not be loaded" tone="error"
-                  action={{ label: 'Retry', run: () => loadData(page) }}>{employeesError}</PageState></td></tr>
-              ) : loadingEmployees ? (
-                <tr><td colSpan={7} className={styles.emptyState}><PageState title="Loading employees..." /></td></tr>
-              ) : filteredEmployees.length > 0 ? (
-                filteredEmployees.map((emp, index) => (
-                  <tr key={emp.id}>
-                    <td className={styles.serialCell}>{index + 1}</td>
-                    <td>
-                      <span className={styles.themeEmpId}>{emp.employee_id || '---'}</span>
-                    </td>
-                    <td>
-                      <div className={styles.identityCell}>
-                        <div className={styles.miniAvatar}>
-                          {emp.profile?.profile_picture ? (
-                            <img 
-                              src={resolveMediaUrl(emp.profile.profile_picture)}
-                              alt={getEmpName(emp)} 
-                              className={styles.avatarImage} 
-                            />
-                          ) : (
-                            getEmpName(emp).charAt(0)
-                          )}
-                        </div>
-                        <div className={styles.identityText}>
-                          <span className={styles.fullName}>{getEmpName(emp)}</span>
-                          <span className={styles.metaEmail}>{emp.email}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div className={styles.domainStack}>
-                        <span className={styles.primaryDesig}>{emp.designation_name}</span>
-                        <span className={styles.secondaryDept}>{emp.department_name}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className={styles.dateCell}>
-                        <Calendar size={12} color="#94a3b8" />
-                        <span>{emp.date_of_joining ? new Date(emp.date_of_joining).toLocaleDateString('en-GB') : '---'}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className={styles.roleLabel} style={{ color: emp.role_name === 'SuperAdmin' ? '#ef4444' : '#0f62fe' }}>
-                        <ShieldCheck size={12} />
-                        <span>{emp.role_name}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <Badge variant={emp.status === 'ACTIVE' ? 'success' : 'dark'}>{emp.status}</Badge>
-                    </td>
-
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7" className={styles.emptyState}>
-                    <div className={styles.emptyContent}>
-                      <div className={styles.emptyIcon}><AlertCircle size={40} /></div>
-                      <h3>No employees match these filters</h3>
-                      <p>Adjust your filters or search query to find who you're looking for.</p>
-                      <Button variant="outline" onClick={() => { setSearch(''); setFilters({ role: '', department: '', status: '' }); }}>Clear All Filters</Button>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          {/* Pagination Controls */}
-          {employeesData && employeesData.count > 0 && (
-            <div className={styles.paginationControls} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', borderTop: '1px solid #e2e8f0', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                Showing page {page} (Total {employeesData.count} items)
-              </span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setPage(p => Math.max(1, p - 1))} 
-                  disabled={!employeesData.previous}
-                >
-                  Previous
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setPage(p => p + 1)} 
-                  disabled={!employeesData.next}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </Card>
+    <PageLayout>
+      <PageHeader title="Employee Directory" actions={hasPerm('users:add') &&
+        <Button icon={<Plus size={16} />} onClick={() => { setCreatedEmp(null); employeeModal.open(); }}>Add employee</Button>} />
+      {employeesData && <MetricStrip metrics={[
+        { label: 'Total Employees', value: stats.total, Icon: Users },
+        { label: 'Active on This Page', value: stats.active, Icon: UserCircle, tone: 'success' },
+        { label: 'Exited on This Page', value: stats.exited, Icon: ExternalLink, tone: 'warning' },
+      ]} />}
+      <DataTable label="Employees" columns={columns} rows={filteredEmployees} rowKey={employee => employee.id}
+        loading={loadingEmployees || (!employeesData && !employeesError)} error={employeesError} onRetry={() => loadData(page)}
+        empty={search || Object.values(filters).some(Boolean) ? {
+          title: 'No employees match these filters',
+          description: 'Adjust your filters or search query.',
+          action: { label: 'Clear filters', run: clearFilters },
+        } : { title: 'No employees yet' }}
+        pagination={employeesData && {
+          page, total: employeesData.count, hasPrevious: Boolean(employeesData.previous), hasNext: Boolean(employeesData.next),
+          onPrevious: () => setPage(value => Math.max(1, value - 1)), onNext: () => setPage(value => value + 1),
+        }}
+        toolbar={<TableToolbar search={search} onSearch={setSearch} searchLabel="Search employees on this page"
+          placeholder="Search this page by name, ID or email" filters={filterFields} onReset={clearFilters} />} />
 
       {/* Professional Onboarding Modal */}
       <Modal
@@ -399,48 +251,16 @@ export default function EmployeeDirectory() {
               </div>
               <div className={styles.groupContent}>
                 <div className={styles.fieldRow}>
-                  <div className={styles.field}>
-                    <label>First Name</label>
-                    <input placeholder="e.g. Rajan" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} required className={styles.proInput} />
-                  </div>
-                  <div className={styles.field}>
-                    <label>Last Name</label>
-                    <input placeholder="e.g. Kumar" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} className={styles.proInput} />
-                  </div>
+                  <Input label="First Name" placeholder="e.g. Rajan" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} required />
+                  <Input label="Last Name" placeholder="e.g. Kumar" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} />
                 </div>
                 <div className={styles.fieldRow}>
-                  <div className={styles.field}>
-                    <label>Organizational Email</label>
-                    <input placeholder="rjk@hireflow.com" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required className={styles.proInput} />
-                  </div>
-                  <div className={styles.field}>
-                    <label>Contact Number</label>
-                    <div className={styles.prefixedInput}>
-                      <span className={styles.inputPrefix}>+91</span>
-                      <input
-                        placeholder="98XXXXXXXX"
-                        value={formData.phone_number}
-                        onChange={e => {
-                          // Strip any non-digit characters
-                          const digits = e.target.value.replace(/\D/g, '');
-                          setFormData({ ...formData, phone_number: digits });
-                        }}
-                        onKeyDown={e => {
-                          // Block non-numeric keys (allow backspace, delete, arrows, tab)
-                          const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'];
-                          if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) {
-                            e.preventDefault();
-                          }
-                        }}
-                        maxLength={10}
-                        minLength={10}
-                        inputMode="numeric"
-                        pattern="[0-9]{10}"
-                        title="Enter a valid 10-digit mobile number"
-                        className={styles.proInput}
-                      />
-                    </div>
-                  </div>
+                  <Input label="Organizational Email" placeholder="rjk@hireflow.com" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} required />
+                  <Input label="Contact Number (+91)" type="tel" inputMode="numeric" maxLength={10} pattern="[0-9]{10}"
+                    placeholder="98XXXXXXXX" value={formData.phone_number}
+                    onChange={event => setFormData(current => ({
+                      ...current, phone_number: event.target.value.replace(/\D/g, '').slice(0, 10),
+                    }))} />
                 </div>
               </div>
             </div>
@@ -455,40 +275,28 @@ export default function EmployeeDirectory() {
               </div>
               <div className={styles.groupContent}>
                 <div className={styles.fieldRow}>
-                  <div className={styles.field}>
-                    <label>Operating Department</label>
-                    <select value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} required className={styles.proSelect}>
+                  <Select label="Operating Department" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} required>
                       <option value="">Select Domain...</option>
                       {meta.depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                  </div>
-                  <div className={styles.field}>
-                    <label>Job Designation</label>
-                    <select value={formData.designation} onChange={e => setFormData({ ...formData, designation: e.target.value })} required className={styles.proSelect}>
+                    </Select>
+                  <Select label="Job Designation" value={formData.designation} onChange={e => setFormData({ ...formData, designation: e.target.value })} required>
                       <option value="">Select Title...</option>
                       {meta.desigs.filter(d => d.department === parseInt(formData.department)).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                  </div>
+                    </Select>
                 </div>
                 <div className={styles.fieldRow}>
-                  <div className={styles.field}>
-                    <label>Access System Role</label>
-                    <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} disabled={!isSuper} className={styles.proSelect}>
+                  <Select label="Access System Role" value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} disabled={!isSuper}>
                       <option value="">Default employee access</option>
                       {meta.roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                    </select>
-                  </div>
-                  <div className={styles.field}>
-                    <label>Official Date of Joining</label>
-                    <input type="date" value={formData.date_of_joining} onChange={e => setFormData({ ...formData, date_of_joining: e.target.value })} required className={styles.proInput} />
-                  </div>
+                    </Select>
+                  <Input label="Official Date of Joining" type="date" value={formData.date_of_joining} onChange={e => setFormData({ ...formData, date_of_joining: e.target.value })} required />
                 </div>
               </div>
             </div>
 
             <div className={styles.onboardFooter}>
               <Button variant="ghost" onClick={employeeModal.close}>Dismiss</Button>
-              <Button loading={creating} type="submit" className={styles.submitBtn}>
+              <Button loading={creating} type="submit">
                 Add Employee
               </Button>
             </div>
@@ -577,6 +385,6 @@ export default function EmployeeDirectory() {
       </Modal>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-    </>
+    </PageLayout>
   );
 }

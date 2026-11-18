@@ -1,3 +1,4 @@
+import Select from '../../components/common/Select/Select';
 import { useEffect, useId, useState } from 'react';
 import Button from '../../components/common/Button/Button';
 import Input from '../../components/common/Input/Input';
@@ -71,29 +72,21 @@ export default function CreateRecruitmentWizard({ onClose, onCreate }) {
       {departments?.length === 0 && <p role="status" className={styles.message}>Create a department before adding a job.</p>}
       <form id={formId} className={styles.form} onSubmit={submit} aria-busy={busy}>
         <Input name="title" label="Job title" required maxLength={255} />
-        <label className="form-field">Department
-          <select name="department" aria-label="Department" required defaultValue="">
+        <Select label="Department" name="department" aria-label="Department" required defaultValue="">
             <option value="" disabled>Select department</option>
             {departments?.map(department => <option key={department.id} value={department.id}>{department.name}</option>)}
-          </select>
-        </label>
+          </Select>
         <Input name="headcount" label="Openings" type="number" min="1" step="1" defaultValue="1" required />
-        <label className="form-field">Status
-          <select name="status" aria-label="Status" defaultValue="DRAFT">
+        <Select label="Status" name="status" aria-label="Status" defaultValue="DRAFT">
             <option value="DRAFT">Draft</option><option value="ACTIVE">Active</option>
-          </select>
-        </label>
-        <label className="form-field">Work arrangement
-          <select name="location_mode" aria-label="Work arrangement" value={locationMode}
+          </Select>
+        <Select label="Work arrangement" name="location_mode" aria-label="Work arrangement" value={locationMode}
             onChange={event => setLocationMode(event.target.value)}>
             <option value="ON_SITE">On-site</option><option value="HYBRID">Hybrid</option><option value="REMOTE">Remote</option>
-          </select>
-        </label>
+          </Select>
         <Input name="location" label="Location" maxLength={255} required={locationMode !== 'REMOTE'} />
         {numbers.map(field => <Input key={field.name} {...field} type="number" min="0" defaultValue="0" required />)}
-        <label className={styles.wide + ' form-field'}>Job description
-          <textarea name="job_description" rows={4} />
-        </label>
+        <Input as="textarea" name="job_description" label="Job description" rows={4} containerClass={styles.wide} />
         <Input name="requirements" label="Required skills, separated by commas" containerClass={styles.wide} />
       </form>
     </Modal>
