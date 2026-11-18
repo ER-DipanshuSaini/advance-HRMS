@@ -35,29 +35,21 @@ export default function Login() {
     }
   };
 
-  const handleDemoLogin = (type) => {
-    const creds = type === 'admin' 
-      ? { e: 'admin@hireflow.com', p: 'password' } 
-      : { e: 'employee@hireflow.com', p: 'password' };
-    setEmail(creds.e);
-    setPassword(creds.p);
-  };
-
   const heroPoints = [
     {
       icon: <Layout size={20} />,
       title: "Modular Infrastructure",
-      desc: "One-click deployment of HR, Payroll, and Performance modules."
+      desc: "Manage employee profiles, time off, and recruiting in one workspace."
     },
     {
       icon: <Users size={20} />,
       title: "Self-Service Identity",
-      desc: "Empower employees with zero-trust profile and seat management."
+      desc: "Give employees access to their profile and HR calendar."
     },
     {
       icon: <ShieldAlert size={20} />,
       title: "Granular RBAC",
-      desc: "Bank-grade permission boundaries for every seat in the organization."
+      desc: "Control access to recruiting and HR records by role."
     }
   ];
 
@@ -145,14 +137,6 @@ export default function Login() {
               Access Dashboard
             </Button>
           </form>
-
-          <div className={styles.demoSection}>
-            <p>Demo Portals</p>
-            <div className={styles.demoButtons}>
-              <Button onClick={() => handleDemoLogin('admin')} variant="outline" style={{ flex: 1, height: '44px' }}>SuperAdmin</Button>
-              <Button onClick={() => handleDemoLogin('employee')} variant="outline" style={{ flex: 1, height: '44px' }}>Employee</Button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -1,4 +1,6 @@
-import threading
+from uuid import uuid4
+from django.db import transaction
+from django.http import FileResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
@@ -17,12 +19,25 @@ class MailAccountViewSet(viewsets.ModelViewSet):
         return MailAccount.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        from .tasks import full_initial_sync_task
         account = serializer.save(user=self.request.user)
-        # 1. Sync first batch synchronously for better UX
-        MailManager.sync_account_incremental(account)
-        # 2. Trigger Full Historical Sync in background
-        full_initial_sync_task.delay(account.id)
+        queue_mail_sync(account, historical=True)
+
+
+def queue_mail_sync(account, historical=False):
+    from .tasks import full_initial_sync_task
+
+    if not MailAccount.objects.filter(pk=account.pk).exclude(sync_status='syncing').update(sync_status='syncing'):
+        return False
+
+    def publish():
+        try:
+            full_initial_sync_task.delay(account.pk, historical=historical)
+        except Exception:
+            MailAccount.objects.filter(pk=account.pk).update(sync_status='failed')
+            raise
+
+    transaction.on_commit(publish)
+    return True
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -36,7 +51,7 @@ def validate_mail_credentials(request):
     # Map 'email_address' to 'email' for the manager
     val_config = {**config, 'email': config.get('email_address')}
     
-    if not all(val_config.get(f) for f in ['email', 'password', 'imap_host', 'smtp_host']):
+    if not all(config.get(field) for field in required_fields):
         return Response({'success': False, 'error': 'Missing required fields'}, status=400)
 
     success, error = MailManager.validate_credentials(val_config)
@@ -57,21 +72,16 @@ def sync_mailbox(request, account_id):
     except MailAccount.DoesNotExist:
         return Response({'error': 'Account not found'}, status=404)
 
-    if account.sync_status == 'syncing':
+    if not queue_mail_sync(account, historical=not account.last_sync_at):
         return Response({
             'success': False, 
             'error': 'Background full sync is currently in progress. Refreshing is disabled.'
         }, status=400)
 
-    # Perform Incremental Sync (New emails only)
-    new_count = MailManager.sync_account_incremental(account)
-
     return Response({
         'success': True, 
-        'new_emails': new_count,
-        'last_sync': account.last_sync_at,
-        'sync_status': account.sync_status
-    })
+        'sync_status': 'syncing',
+    }, status=status.HTTP_202_ACCEPTED)
 
 class MailMessageViewSet(viewsets.ModelViewSet):
     serializer_class = MailMessageSerializer
@@ -131,7 +141,7 @@ def send_mail_view(request, account_id):
         # Save to Sent folder
         msg = MailMessage.objects.create(
             account=account,
-            uid=f"sent_{int(timezone.now().timestamp())}",
+            uid=f'sent_{uuid4().hex}',
             folder='sent',
             subject=data.get('subject'),
             sender=account.email_address,
@@ -155,17 +165,13 @@ def send_mail_view(request, account_id):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def download_attachment(request, attachment_id):
-    """
-    Returns the attachment file.
-    """
     try:
         attachment = MailAttachment.objects.get(id=attachment_id, message__account__user=request.user)
-        response = Response(status=status.HTTP_200_OK)
-        # In a real app, you might use Django's FileResponse or just return the URL
-        # Here we return metadata + URL for simplicity, or we could redirect
-        return Response({
-            'file_name': attachment.file_name,
-            'url': request.build_absolute_uri(attachment.file.url)
-        })
-    except MailAttachment.DoesNotExist:
+        response = FileResponse(
+            attachment.file.open('rb'), as_attachment=True,
+            filename=attachment.file_name, content_type='application/octet-stream',
+        )
+        response['Cache-Control'] = 'private, no-store'
+        return response
+    except (MailAttachment.DoesNotExist, FileNotFoundError):
         return Response({'error': 'Attachment not found'}, status=404)

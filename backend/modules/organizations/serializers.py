@@ -1,5 +1,15 @@
+from django.db.models import Count, Prefetch
 from rest_framework import serializers
 from .models import Department, Designation
+
+
+def departments_with_details():
+    return Department.objects.select_related('hod').annotate(
+        employee_total=Count('user'),
+    ).prefetch_related(Prefetch(
+        'designations', queryset=Designation.objects.annotate(employee_total=Count('user')),
+    ))
+
 
 class DesignationSerializer(serializers.ModelSerializer):
     employee_count = serializers.SerializerMethodField()
@@ -9,6 +19,8 @@ class DesignationSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'designation_code', 'department', 'employee_count']
 
     def get_employee_count(self, obj):
+        if hasattr(obj, 'employee_total'):
+            return obj.employee_total
         return obj.user_set.count()
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -26,4 +38,6 @@ class DepartmentSerializer(serializers.ModelSerializer):
         return None
 
     def get_employee_count(self, obj):
+        if hasattr(obj, 'employee_total'):
+            return obj.employee_total
         return obj.user_set.count()

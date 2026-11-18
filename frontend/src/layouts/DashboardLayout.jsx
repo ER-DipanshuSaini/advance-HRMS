@@ -41,7 +41,7 @@ export default function DashboardLayout() {
 
   const hasPerm = (permCode) => {
     const perms = user.permissions || [];
-    return perms.includes(permCode) || user.role === 'SuperAdmin' || user.role_name === 'SuperAdmin';
+    return Boolean(user.is_superuser || perms.includes(permCode));
   };
 
   // Dynamic breadcrumb logic
@@ -75,7 +75,7 @@ export default function DashboardLayout() {
     {
       title: "RECRUITMENT",
       links: [
-        { to: "/recruitment", icon: <Briefcase size={18} />, label: "Recruitments", id: 'recruit' }
+        { to: "/recruitment", icon: <Briefcase size={18} />, label: "Recruitments", perm: 'recruitment:view', id: 'recruit' }
       ]
     },
     {

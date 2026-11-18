@@ -14,5 +14,11 @@ __pycache__/
 *.sqlite3
 *.db
 
+# Local runtime data
+/data_dump.json
+/media/
+/celery-logs/
+/celerybeat-schedule*
+
 # OS
 .DS_Store

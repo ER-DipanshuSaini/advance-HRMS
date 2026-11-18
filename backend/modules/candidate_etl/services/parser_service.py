@@ -1,9 +1,24 @@
 import re
 from io import BytesIO
 from pdfminer.high_level import extract_text
+from zipfile import ZipFile
+from xml.etree import ElementTree
 import json
 
 class ParserService:
+    @staticmethod
+    def extract_docx_text(file_obj):
+        namespace = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+        with ZipFile(file_obj) as document:
+            main = document.getinfo('word/document.xml')
+            if main.file_size > 5 * 1024 * 1024:
+                raise ValueError('Document XML exceeds the extraction limit.')
+            root = ElementTree.fromstring(document.read(main))
+        return '\n'.join(
+            ''.join(node.text or '' for node in paragraph.iter(f'{namespace}t'))
+            for paragraph in root.iter(f'{namespace}p')
+        )
+
     @staticmethod
     def extract_raw_text(file_obj):
         """Extracts text from a PDF file object."""
@@ -66,9 +81,8 @@ class ParserService:
             'SQL', 'PostgreSQL', 'HTML', 'CSS', 'Tailwind', 'Git', 'Java', 
             'C++', 'Machine Learning', 'AI', 'Flutter', 'Next.js'
         ]
-        text_lower = text.lower()
         for skill in common_skills:
-            if skill.lower() in text_lower:
+            if re.search(rf'(?<!\w){re.escape(skill)}(?!\w)', text, re.IGNORECASE):
                 data["skills"].append(skill)
 
         # 6. Experience Segments (Heuristic: Look for date patterns 20xx - 20xx)

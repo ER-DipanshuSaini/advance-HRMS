@@ -1,7 +1,8 @@
 import random
-import re
+from secrets import token_urlsafe
 from datetime import timedelta, date, time
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from modules.roles.models import Role, Permission
 from modules.organizations.models import Department, Designation
@@ -22,12 +23,6 @@ class Command(BaseCommand):
         seq = str(existing_count + 1).zfill(2)
         return f"{base_id}{seq}"
 
-    def generate_temp_password(self, first_name, last_name):
-        name = f"{first_name} {last_name}".strip()
-        clean_name = re.sub(r'[^a-zA-Z]', '', name)
-        name_prefix = clean_name[:5].capitalize() if len(clean_name) >= 5 else clean_name.capitalize().ljust(5, 'x')
-        return f"{name_prefix}@{timezone.now().year}HF"
-
     def is_working_day(self, check_date):
         # Exclude weekends (Saturday=5, Sunday=6)
         if check_date.weekday() >= 5:
@@ -35,6 +30,8 @@ class Command(BaseCommand):
         return True
 
     def handle(self, *args, **kwargs):
+        if not settings.DEBUG:
+            raise CommandError('Dummy data can only be generated with DEBUG enabled.')
         self.stdout.write("Starting HRMS Data Scalability Injection...")
 
         # 1. ROLES & PERMISSIONS
@@ -117,7 +114,7 @@ class Command(BaseCommand):
                 role = random.choice(all_roles)
                 
                 emp_id = self.generate_emp_id(first_name, last_name, dept.dept_id)
-                temp_pass = self.generate_temp_password(first_name, last_name)
+                temp_pass = token_urlsafe(24)
                 
                 days_back = random.randint(70, 150)
                 doj = (timezone.now() - timedelta(days=days_back)).date()

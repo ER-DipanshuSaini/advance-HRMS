@@ -10,3 +10,6 @@ hireflow_dev_backup.sqlite3
 .git
 .gitignore
 data_dump.json
+media/
+celery-logs/
+celerybeat-schedule*

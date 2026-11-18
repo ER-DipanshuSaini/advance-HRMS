@@ -7,16 +7,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Initialize environment variables
 env = environ.Env(
-    DEBUG=(bool, True),
-    DATABASE_URL=(str, f"sqlite:///{BASE_DIR}/hireflow_dev.sqlite3"),
+    DEBUG=(bool, False),
 )
 
 # Load .env file
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-z=t_v($c12j8gq(k-p=y$d8p)v&x*$=!y+^u$@^l=_q*1r4r-v')
 DEBUG = env('DEBUG')
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
+SECRET_KEY = env('SECRET_KEY', default='') or ('django-insecure-local-development' if DEBUG else '')
+if not SECRET_KEY:
+    raise ValueError('SECRET_KEY must be set when DEBUG is disabled.')
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=not DEBUG)
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)
+if env.bool('TRUST_PROXY_HTTPS_HEADER', default=False):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -74,8 +82,17 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
-    'default': env.db(),
+    'default': env.db(default=f"sqlite:///{BASE_DIR}/hireflow_dev.sqlite3") if DEBUG else env.db(),
 }
+
+CACHE_URL = env('CACHE_URL', default='')
+if CACHE_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': CACHE_URL,
+        },
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
@@ -89,14 +106,20 @@ TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'static'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = env.list(
+    'CORS_ALLOWED_ORIGINS',
+    default=['http://localhost:5173', 'http://127.0.0.1:5173'] if DEBUG else [],
+)
 
 REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'core.authentication.ActiveEmployeeAuthentication',
     ),
+    'DEFAULT_THROTTLE_RATES': {'login': '10/minute'},
 }
 
 SIMPLE_JWT = {
@@ -108,7 +131,7 @@ SIMPLE_JWT = {
 
 # Media files setup
 MEDIA_URL = env('MEDIA_URL', default='/media/')
-MEDIA_ROOT = os.path.join(BASE_DIR, env('MEDIA_ROOT', default='media'))
+MEDIA_ROOT = BASE_DIR / env('MEDIA_ROOT', default='media')
 
 # Celery Configuration
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://redis:6379/0')
@@ -117,3 +140,8 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+MAIL_ALLOWED_HOSTS = env.list('MAIL_ALLOWED_HOSTS', default=[
+    'imap.gmail.com', 'smtp.gmail.com',
+    'outlook.office365.com', 'smtp.office365.com',
+    'imap.hostinger.com', 'smtp.hostinger.com',
+])

@@ -1,149 +1,102 @@
-import imaplib
-import email
-from email.header import decode_header
-from django.utils import timezone
-from datetime import timedelta
+import logging
+from pathlib import Path
+
 from celery import shared_task
 from django.core.files.base import ContentFile
-from modules.communication_hub.models import MailAccount
+from django.db import transaction
+from django.db.models import Q
+
 from modules.communication_hub.manager import MailManager
+from modules.communication_hub.models import MailAccount, MailAttachment
+
 from .models import CandidateProfile, CandidateResume, ExperienceEntry, IngestionLog
 from .services.parser_service import ParserService
-import logging
+
 
 logger = logging.getLogger(__name__)
+MAX_RESUME_SIZE = 10 * 1024 * 1024
+
 
 @shared_task
 def run_candidate_extraction_pipeline():
-    """
-    Scheduled task to run ETL for all enabled accounts.
-    Processes resumes from the local database storage.
-    """
-    logger.info(">>> [EXTRACT_PIPELINE: START] Background process initiated.")
-    
     accounts = MailAccount.objects.filter(is_etl_enabled=True, is_active=True)
-    account_count = accounts.count()
-    logger.info(f"--- [EXTRACT_PIPELINE: MID] Found {account_count} active accounts with ETL enabled.")
-    
-    for account in accounts:
-        logger.info(f"--- [EXTRACT_PIPELINE: MID] Processing Account: {account.email_address}")
-        
-        # Incremental Sync
+    for account in accounts.iterator():
         try:
-            logger.info(f"    [SYNC] Polling incremental updates for {account.email_address}...")
-            MailManager.sync_account_incremental(account)
-            logger.info(f"    [SYNC] Incremental sync successful for {account.email_address}.")
-        except Exception as e:
-            logger.error(f"    [SYNC_ERROR] FAILED for {account.email_address}: {e}")
-            
-        # Process Local
-        logger.info(f"    [LOCAL_SCAN] Checking database for unprocessed resumes for {account.email_address}...")
-        process_local_emails(account)
-        logger.info(f"--- [EXTRACT_PIPELINE: MID] Finished processing Account: {account.email_address}")
-    
-    logger.info("<<< [EXTRACT_PIPELINE: FINAL] Background process completed successfully.")
+            if account.sync_status != 'syncing':
+                MailManager.sync_account_incremental(account)
+        except Exception:
+            logger.warning('Candidate mailbox sync failed for account %s', account.pk)
 
-def process_local_emails(account):
-    """Scans local database for unprocessed emails and extracts resumes."""
-    from modules.communication_hub.models import MailMessage
-    
-    # We only care about emails with attachments that aren't logged yet
-    unprocessed_messages = MailMessage.objects.filter(
-        account=account,
-        attachments__isnull=False
-    ).exclude(
-        id__in=IngestionLog.objects.filter(account_email=account.email_address).values_list('message_id', flat=True)
-    ).distinct()
+        attachments = MailAttachment.objects.filter(message__account=account).filter(
+            Q(file_name__iendswith='.pdf') | Q(file_name__iendswith='.docx')
+        ).exclude(ingestion_log__status__in=['SUCCESS', 'DUPLICATE'])
+        for attachment_id in attachments.values_list('pk', flat=True).iterator():
+            try:
+                process_attachment(attachment_id)
+            except Exception:
+                logger.warning('Resume ingestion failed for attachment %s', attachment_id)
+                attachment = MailAttachment.objects.select_related('message__account').filter(pk=attachment_id).first()
+                if attachment:
+                    save_ingestion_log(attachment, 'FAILED', 'Resume extraction failed.')
 
-    count = unprocessed_messages.count()
-    logger.info(f"    [LOCAL_SCAN] Found {count} unprocessed messages with attachments.")
 
-    for msg in unprocessed_messages:
-        logger.info(f"    [MSG_PROCESS] Handling Message ID: {msg.id} (UID: {msg.uid})")
-        process_individual_message(account, msg)
+def save_ingestion_log(attachment, status, error=''):
+    log, _ = IngestionLog.objects.get_or_create(
+        attachment=attachment,
+        defaults={
+            'account_email': attachment.message.account.email_address,
+            'email_uid': attachment.message.uid,
+            'message': attachment.message,
+            'status': status,
+            'error_message': error,
+        },
+    )
+    if log.status == 'FAILED':
+        IngestionLog.objects.filter(pk=log.pk, status='FAILED').update(
+            status=status, error_message=error,
+        )
 
-def process_individual_message(account, msg):
-    """Parses attachments from a local MailMessage record."""
-    attachments = msg.attachments.filter(file_name__iendswith='.pdf')
-    
-    if not attachments.exists():
-        logger.info(f"    [MSG_SKIP] No PDF attachments found for Message {msg.id}.")
+
+@transaction.atomic
+def process_attachment(attachment_id):
+    attachment = MailAttachment.objects.select_for_update().select_related('message__account').get(pk=attachment_id)
+    if IngestionLog.objects.filter(attachment=attachment, status__in=['SUCCESS', 'DUPLICATE']).exists():
         return
+    with attachment.file.open('rb') as source:
+        data = source.read(MAX_RESUME_SIZE + 1)
+    if len(data) > MAX_RESUME_SIZE:
+        raise ValueError('Resume exceeds the file size limit.')
 
-    logger.info(f"    [MSG_PROCESS] Found {attachments.count()} PDF attachments.")
+    extension = Path(attachment.file_name).suffix.lower()
+    extract = ParserService.extract_docx_text if extension == '.docx' else ParserService.extract_raw_text
+    text = extract(ContentFile(data))
+    parsed = ParserService.parse_resume(text)
+    email = parsed.get('email')
+    phone = parsed.get('phone')
+    if not email or not phone:
+        raise ValueError('Resume must contain an email address and phone number.')
 
-    for att in attachments:
-        try:
-            logger.info(f"      [PARSE: START] Extracting text from {att.file_name}...")
-            # Re-read file content from storage
-            file_data = att.file.read()
-            text = ParserService.extract_raw_text(ContentFile(file_data))
-            
-            if not text:
-                logger.warning(f"      [PARSE: FAIL] No text could be extracted from {att.file_name}.")
-                IngestionLog.objects.create(
-                    account_email=account.email_address, 
-                    email_uid=msg.uid, 
-                    message=msg,
-                    status='FAILED', 
-                    error_message="Could not extract text from PDF"
-                )
-                continue
+    candidate, created = CandidateProfile.objects.update_or_create(
+        email=email.lower(), phone=phone,
+        defaults={
+            'name': parsed.get('name') or 'Unknown',
+            'linkedin': parsed.get('linkedin'),
+            'github': parsed.get('github'),
+            'portfolio': parsed.get('portfolio'),
+            'skills': ', '.join(parsed.get('skills', [])),
+        },
+    )
+    resume, _ = CandidateResume.objects.get_or_create(profile=candidate)
+    resume.resume_file.save(f'candidate-resume-{candidate.candidate_id}{extension}', ContentFile(data), save=False)
+    resume.raw_text = text
+    resume.parsed_json = parsed
+    resume.save()
 
-            logger.info(f"      [PARSE: MID] Parsing candidate data from text...")
-            parsed_data = ParserService.parse_resume(text)
-            
-            email_val = parsed_data.get('email')
-            phone_val = parsed_data.get('phone')
-
-            if not email_val or not phone_val:
-                logger.warning(f"      [PARSE: FAIL] Incomplete data (Email/Phone missing) for {att.file_name}.")
-                continue
-
-            # Upsert Candidate
-            logger.info(f"      [DATABASE: DB_SAVE] Saving candidate {parsed_data.get('name', 'Unknown')} to DB...")
-            candidate, created = CandidateProfile.objects.update_or_create(
-                email=email_val,
-                phone=phone_val,
-                defaults={
-                    "name": parsed_data.get('name', 'Unknown'),
-                    "linkedin": parsed_data.get('linkedin'),
-                    "github": parsed_data.get('github'),
-                    "portfolio": parsed_data.get('portfolio'),
-                    "skills": ", ".join(parsed_data.get('skills', [])),
-                }
-            )
-
-            # Store Resume
-            resume_filename = f"candidate-resume-{candidate.candidate_id}.pdf"
-            CandidateResume.objects.update_or_create(
-                profile=candidate,
-                defaults={
-                    "resume_file": ContentFile(file_data, name=resume_filename),
-                    "raw_text": text,
-                    "parsed_json": parsed_data,
-                }
-            )
-
-            # Store Experience
-            ExperienceEntry.objects.filter(profile=candidate).delete()
-            for exp in parsed_data.get('experience', []):
-                ExperienceEntry.objects.create(
-                    profile=candidate,
-                    company=exp.get('company'),
-                    title=exp.get('title'),
-                    start_date=exp.get('start_date'),
-                    end_date=exp.get('end_date')
-                )
-
-            status = 'SUCCESS' if created else 'DUPLICATE'
-            logger.info(f"      [DATABASE: OK] Processed candidate: {candidate.email} (Status: {status})")
-            
-            IngestionLog.objects.create(
-                account_email=account.email_address, 
-                email_uid=msg.uid, 
-                message=msg,
-                status=status
-            )
-        except Exception as e:
-            logger.error(f"      [PARSE_ERROR] Critical failure processing {att.file_name}: {e}")
+    candidate.experiences.all().delete()
+    ExperienceEntry.objects.bulk_create([
+        ExperienceEntry(profile=candidate, **{
+            key: entry.get(key) for key in ('company', 'title', 'start_date', 'end_date')
+        })
+        for entry in parsed.get('experience', [])
+    ])
+    save_ingestion_log(attachment, 'SUCCESS' if created else 'DUPLICATE')

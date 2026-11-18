@@ -2,9 +2,9 @@
 FROM python:3.12-slim
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV DJANGO_SETTINGS_MODULE core.settings
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=core.settings
 
 # Set work directory
 WORKDIR /app
@@ -26,5 +26,4 @@ COPY . /app/
 # Expose port
 EXPOSE 8000
 
-# Entrypoint script will handle migrations and server start
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--access-logfile", "-"]

@@ -4,7 +4,7 @@ from modules.roles.serializers import RoleSerializer
 from modules.organizations.serializers import DepartmentSerializer, DesignationSerializer
 
 from datetime import datetime
-import re
+from secrets import token_hex, token_urlsafe
 
 class EmployeeProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -29,12 +29,6 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', None)
-        
-        # Support FormData uploads for profile picture
-        if hasattr(self, 'initial_data'):
-            if 'profile.profile_picture' in self.initial_data:
-                profile_data = profile_data or {}
-                profile_data['profile_picture'] = self.initial_data['profile.profile_picture']
         
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -80,16 +74,9 @@ class EmployeeCreateSerializer(serializers.ModelSerializer):
         
         base_id = f"H{year}{dept_code}{initials}"
         
-        # Uniqueness sequence
-        existing_count = User.objects.filter(employee_id__startswith=base_id).count()
-        seq = str(existing_count + 1).zfill(2)
-        final_emp_id = f"{base_id}{seq}"
+        final_emp_id = f'{base_id}{token_hex(6).upper()}'
         
-        # 2. Generate Temporary Password
-        # Format: First 5 of Name + @ + Year + HF
-        clean_name = re.sub(r'[^a-zA-Z]', '', name)
-        name_prefix = clean_name[:5].capitalize() if len(clean_name) >= 5 else clean_name.capitalize().ljust(5, 'x')
-        temp_pass = f"{name_prefix}@{datetime.now().year}HF"
+        temp_pass = token_urlsafe(24)
 
         # 3. Create User
         user = User.objects.create_user(

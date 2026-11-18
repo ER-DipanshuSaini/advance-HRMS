@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DOMPurify from 'dompurify';
 import {
   Mail, Send, FileText, Trash2, Star, Search,
   Inbox, RefreshCw, Pencil, ChevronDown, ChevronRight, ChevronLeft,
@@ -36,7 +37,10 @@ function RichEditor({ value, onChange, placeholder = 'Write your message here...
 
   useEffect(() => {
     if (editorRef.current && value && !editorRef.current.innerHTML) {
-      editorRef.current.innerHTML = value;
+      editorRef.current.innerHTML = DOMPurify.sanitize(value, {
+        ALLOWED_TAGS: ['p', 'div', 'br', 'b', 'strong', 'i', 'em', 'u', 's', 'strike', 'ul', 'ol', 'li', 'a', 'blockquote'],
+        ALLOWED_ATTR: ['href', 'align'],
+      });
     }
   }, [value]);
 
@@ -51,7 +55,7 @@ function RichEditor({ value, onChange, placeholder = 'Write your message here...
 
   const handleLink = () => {
     const url = window.prompt('Enter URL:', 'https://');
-    if (url) exec('createLink', url);
+    if (/^https?:\/\//i.test(url || '')) exec('createLink', url);
   };
 
 
@@ -119,6 +123,12 @@ function RichEditor({ value, onChange, placeholder = 'Write your message here...
         contentEditable
         suppressContentEditableWarning
         onInput={handleInput}
+        onPaste={event => {
+          event.preventDefault();
+          exec('insertText', event.clipboardData.getData('text/plain'));
+          handleInput();
+        }}
+        onDrop={event => event.preventDefault()}
         data-placeholder={placeholder}
       />
     </div>
@@ -709,6 +719,24 @@ function FilterPanel({ filters, onChange, onClear, emailCount }) {
    EMAIL VIEW PANEL
 ═══════════════════════════════════════════════════ */
 function EmailView({ email, folder, onBack, onReply, onReplyAll, onForward, onTrash, onMarkUnread, onRecover }) {
+  const [downloadError, setDownloadError] = useState('');
+
+  async function downloadAttachment(attachment) {
+    setDownloadError('');
+    try {
+      const blob = await apiClient(`${API_BASE}/attachment/${attachment.id}/`, { responseType: 'blob' });
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment.file_name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (error) {
+      setDownloadError(error.message);
+    }
+  }
+
   const [showMore, setShowMore] = useState(false);
   const isOutgoing = folder === 'sent' || folder === 'drafts';
   const isTrash = folder === 'trash';
@@ -802,11 +830,24 @@ function EmailView({ email, folder, onBack, onReply, onReplyAll, onForward, onTr
       </div>
 
       {/* Body */}
-      <div
-        className={styles.viewBody}
-        dangerouslySetInnerHTML={{ __html: email.body_html || email.body_text }}
-      />
+      {email.body_html ? (
+        <iframe
+          title="Email body"
+          className={styles.viewBody}
+          sandbox=""
+          referrerPolicy="no-referrer"
+          style={{ width: '100%', minHeight: 360, border: 0 }}
+          srcDoc={`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">${DOMPurify.sanitize(email.body_html, {
+            USE_PROFILES: { html: true },
+            FORBID_TAGS: ['form', 'iframe'],
+            FORBID_ATTR: ['srcset'],
+          })}`}
+        />
+      ) : (
+        <div className={styles.viewBody} style={{ whiteSpace: 'pre-wrap' }}>{email.body_text}</div>
+      )}
 
+      {downloadError && <p role="alert">{downloadError}</p>}
       {/* Attachments Section */}
       {email.attachments && email.attachments.length > 0 && (
         <div className={styles.viewAttachments}>
@@ -815,11 +856,9 @@ function EmailView({ email, folder, onBack, onReply, onReplyAll, onForward, onTr
           </div>
           <div className={styles.attachGrid}>
             {email.attachments.map(att => (
-              <a
+              <button type="button"
                 key={att.id}
-                href={att.file}
-                target="_blank"
-                rel="noopener noreferrer"
+                onClick={() => downloadAttachment(att)}
                 className={styles.viewAttachCard}
                 title={`Download ${att.file_name}`}
               >
@@ -828,10 +867,7 @@ function EmailView({ email, folder, onBack, onReply, onReplyAll, onForward, onTr
                   <div className={styles.attachName}>{att.file_name}</div>
                   <div className={styles.attachSize}>{(att.file_size / 1024).toFixed(1)} KB</div>
                 </div>
-                <button className={styles.attachDownloadBtn}>
-                  <ExternalLink size={14} />
-                </button>
-              </a>
+                <span className={styles.attachDownloadBtn}><ExternalLink size={14} /></span></button>
             ))}
           </div>
         </div>
@@ -874,8 +910,9 @@ const getAvatarColor = (name) => {
 
 const stripHtml = (html) => {
   if (!html) return '';
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.body.textContent || "";
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  return template.content.textContent || "";
 };
 
 export default function EmailClient() {
@@ -958,7 +995,7 @@ export default function EmailClient() {
       await apiClient(`${API_BASE}/sync/${id}/`, { method: 'POST' });
       await fetchMessages();
       await fetchAccounts();
-      setToast({ message: 'Mailbox synced successfully.', type: 'success' });
+      setToast({ message: 'Mailbox sync queued.', type: 'success' });
     } catch (err) {
       setToast({ message: 'Sync failed. Check connection.', type: 'error' });
     } finally {
@@ -976,10 +1013,11 @@ export default function EmailClient() {
     if (anySyncing) {
       const timer = setInterval(() => {
         fetchAccounts();
+        fetchMessages();
       }, 5000);
       return () => clearInterval(timer);
     }
-  }, [accounts]);
+  }, [accounts, activeAccountId, folder]);
 
   useEffect(() => {
     fetchMessages();
@@ -1124,9 +1162,7 @@ export default function EmailClient() {
         body: JSON.stringify(config)
       });
 
-      // Auto-trigger first sync and WAIT for it so modal shows progress
       await fetchAccounts(res.id);
-      await handleSync(res.id);
 
       setShowConfigModal(false);
       setToast({ message: 'Account connected! Welcome to your new inbox.', type: 'success' });

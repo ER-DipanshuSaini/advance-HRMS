@@ -1,13 +1,17 @@
 from rest_framework import serializers
-from .models import JobPosition, JobApplication
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
 from modules.organizations.serializers import DepartmentSerializer
+from .models import Interview, JobPosition, JobApplication, Offer
 
 class JobApplicationSerializer(serializers.ModelSerializer):
     candidate_name = serializers.CharField(source='candidate.name', read_only=True)
     
     class Meta:
         model = JobApplication
-        fields = ['id', 'candidate', 'candidate_name', 'current_stage', 'updated_at']
+        fields = ['id', 'candidate', 'candidate_name', 'current_stage', 'employee', 'updated_at']
+        read_only_fields = ['employee']
 
 class JobPositionSerializer(serializers.ModelSerializer):
     department_details = DepartmentSerializer(source='department', read_only=True)
@@ -35,12 +39,63 @@ class JobPositionSerializer(serializers.ModelSerializer):
         return f"{obj.min_experience}-{obj.max_experience} Yrs"
 
     def get_budget_range(self, obj):
-        return f"₹{int(obj.min_salary)}L - ₹{int(obj.max_salary)}L"
+        return f"₹{obj.min_salary:g}L - ₹{obj.max_salary:g}L"
 
     def get_current_process_stage(self, obj):
         # Logic: Get the most advanced stage from applications
         # For now, we take the most recent update's stage or 'Sourcing' if no apps
-        latest_app = obj.applications.all().order_by('-updated_at').first()
-        if latest_app:
-            return latest_app.get_current_stage_display()
+        stage = getattr(obj, 'latest_stage', None)
+        if stage:
+            return dict(JobApplication.STAGE_CHOICES)[stage]
         return "Sourcing"
+
+    def validate(self, attrs):
+        for lower, upper in [('min_experience', 'max_experience'), ('min_salary', 'max_salary')]:
+            minimum = attrs.get(lower, getattr(self.instance, lower, None))
+            maximum = attrs.get(upper, getattr(self.instance, upper, None))
+            if minimum is not None and maximum is not None and maximum < minimum:
+                raise serializers.ValidationError({upper: 'Must be greater than or equal to the minimum.'})
+        return attrs
+
+
+class InterviewSerializer(serializers.ModelSerializer):
+    interviewer = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.filter(is_active=True, status='ACTIVE'),
+    )
+    technical_score = serializers.IntegerField(min_value=1, max_value=5, required=False)
+    communication_score = serializers.IntegerField(min_value=1, max_value=5, required=False)
+    duration_minutes = serializers.IntegerField(min_value=5, max_value=480, default=30)
+    interviewer_name = serializers.CharField(source='interviewer.get_full_name', read_only=True)
+
+    class Meta:
+        model = Interview
+        fields = [
+            'id', 'interviewer', 'interviewer_name', 'scheduled_at', 'duration_minutes',
+            'technical_score', 'communication_score', 'feedback',
+        ]
+
+
+class OfferSerializer(serializers.ModelSerializer):
+    annual_salary_lpa = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
+
+    class Meta:
+        model = Offer
+        fields = ['annual_salary_lpa', 'start_date', 'status', 'updated_at']
+        read_only_fields = ['updated_at']
+
+    def validate_status(self, status):
+        transitions = {
+            Offer.Status.DRAFT: {Offer.Status.SENT, Offer.Status.WITHDRAWN},
+            Offer.Status.SENT: {Offer.Status.ACCEPTED, Offer.Status.DECLINED, Offer.Status.WITHDRAWN},
+        }
+        previous = self.instance.status if self.instance else Offer.Status.DRAFT
+        if status != previous and status not in transitions.get(previous, ()):
+            raise serializers.ValidationError('Invalid offer status transition.')
+        return status
+
+    def validate(self, attrs):
+        if self.instance and self.instance.status != Offer.Status.DRAFT:
+            for field in ('annual_salary_lpa', 'start_date'):
+                if field in attrs and attrs[field] != getattr(self.instance, field):
+                    raise serializers.ValidationError({field: 'Offer terms are locked after sending.'})
+        return attrs

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 // Layouts & Auth
@@ -11,9 +12,10 @@ import OrgStructure from './pages/Organization/OrgStructure';
 import EmployeeDirectory from './pages/Employees/EmployeeDirectory';
 import Profile from './pages/Profile/Profile';
 import MyCalendar from './pages/MyCalendar/MyCalendar';
-import EmailClient from './pages/Email/EmailClient';
 import RecruitmentDashboard from './pages/Recruitment/RecruitmentDashboard';
 import RecruitmentDetails from './pages/Recruitment/RecruitmentDetails';
+
+const EmailClient = lazy(() => import('./pages/Email/EmailClient'));
 
 function PrivateRoute() {
   const isAuth = localStorage.getItem('hireflow_auth') === 'true';
@@ -35,7 +37,7 @@ export default function App() {
           <Route path="employees" element={<EmployeeDirectory />} />
           <Route path="profile" element={<Profile />} />
           <Route path="my-calendar" element={<MyCalendar />} />
-          <Route path="email" element={<EmailClient />} />
+          <Route path="email" element={<Suspense fallback={<p role="status">Loading email…</p>}><EmailClient /></Suspense>} />
           <Route path="recruitment" element={<RecruitmentDashboard />} />
           <Route path="recruitment/pipeline/:id" element={<RecruitmentDetails />} />
           

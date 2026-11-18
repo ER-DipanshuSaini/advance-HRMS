@@ -60,7 +60,7 @@ export default function EmployeeDirectory() {
 
   const storedUser = JSON.parse(localStorage.getItem('hireflow_user') || '{}');
   const userPerms = storedUser.permissions || [];
-  const isSuper = storedUser.role_name === 'SuperAdmin' || storedUser.role === 'SuperAdmin';
+  const isSuper = Boolean(storedUser.is_superuser);
   const hasPerm = (code) => isSuper || userPerms.includes(code);
 
   const loadData = async (pageNum = 1) => {
@@ -77,7 +77,7 @@ export default function EmployeeDirectory() {
       const [d, ds, r] = await Promise.all([
         fetchMeta('/org/departments/'),
         fetchMeta('/org/designations/'),
-        fetchMeta('/security/roles/')
+        hasPerm('roles:view') ? fetchMeta('/security/roles/') : Promise.resolve([])
       ]);
       setMeta({ depts: d, desigs: ds, roles: r });
     } catch (e) { console.error(e); }
@@ -97,6 +97,7 @@ export default function EmployeeDirectory() {
       const { firstName, lastName, ...rest } = formData;
       const submissionData = {
         ...rest,
+        role: isSuper ? (rest.role || null) : null,
         first_name: firstName.trim(),
         last_name: lastName.trim()
       };
@@ -465,8 +466,8 @@ export default function EmployeeDirectory() {
                 <div className={styles.fieldRow}>
                   <div className={styles.field}>
                     <label>Access System Role</label>
-                    <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} required className={styles.proSelect}>
-                      <option value="">Choose Policy Group...</option>
+                    <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} disabled={!isSuper} className={styles.proSelect}>
+                      <option value="">Default employee access</option>
                       {meta.roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                     </select>
                   </div>

@@ -1,6 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:8000/api/v1');
 
-export const apiClient = async (endpoint, options = {}) => {
+export const apiClient = async (endpoint, { responseType, ...options } = {}) => {
   const token = localStorage.getItem('hireflow_token');
   const isLoginEndpoint = endpoint.includes('/auth/login/');
   
@@ -40,6 +40,8 @@ export const apiClient = async (endpoint, options = {}) => {
 
   // Handle No Content
   if (response.status === 204) return null;
+
+  if (responseType === 'blob') return response.blob();
 
   // Return Data
   return await response.json();

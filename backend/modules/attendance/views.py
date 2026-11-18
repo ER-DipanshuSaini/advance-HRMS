@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from django.db.models import Avg, Sum, Count
+from django.db import transaction
+from django.contrib.auth import get_user_model
 from decimal import Decimal
 import datetime
 
@@ -11,7 +13,7 @@ from .models import AttendanceRecord, Holiday, LeaveRequest
 from .serializers import AttendanceRecordSerializer, HolidaySerializer, LeaveRequestSerializer
 
 
-class AttendanceViewSet(viewsets.ModelViewSet):
+class AttendanceViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AttendanceRecordSerializer
     permission_classes = [IsAuthenticated]
 
@@ -230,7 +232,7 @@ class HolidayViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
 
-class LeaveViewSet(viewsets.ModelViewSet):
+class LeaveViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = LeaveRequestSerializer
     permission_classes = [IsAuthenticated]
 
@@ -246,6 +248,7 @@ class LeaveViewSet(viewsets.ModelViewSet):
         return qs
 
     @action(detail=False, methods=['post'], url_path='apply')
+    @transaction.atomic
     def apply(self, request):
         user = request.user
         perms = user.role.permissions.values_list('code', flat=True) if user.role else []
@@ -272,7 +275,12 @@ class LeaveViewSet(viewsets.ModelViewSet):
                 return Response({"detail": "End date must be after or on start date."}, status=status.HTTP_400_BAD_REQUEST)
                 
             try:
-                target_user_obj = user.__class__.objects.get(id=data['user'])
+                target_user_obj = get_user_model().objects.select_for_update().get(id=data['user'])
+                if LeaveRequest.objects.filter(
+                    user=target_user_obj, status__in=['PENDING', 'APPROVED'],
+                    start_date__lte=end_date, end_date__gte=start_date,
+                ).exists():
+                    return Response({"detail": "Dates overlap an existing leave."}, status=status.HTTP_400_BAD_REQUEST)
                 balances = self._get_balance_dict(target_user_obj)
                 available = balances.get(leave_type, {}).get('balance', 0)
                 
@@ -281,8 +289,8 @@ class LeaveViewSet(viewsets.ModelViewSet):
                         {"detail": f"Insufficient {leave_type} balance. Requested: {requested_days}, Available: {available}"},
                         status=status.HTTP_400_BAD_REQUEST
                     )
-            except Exception as e:
-                return Response({"detail": f"Error verifying balance: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except (get_user_model().DoesNotExist, ValueError, TypeError):
+                return Response({"detail": "Invalid employee."}, status=status.HTTP_400_BAD_REQUEST)
 
             # user is in read_only_fields so we pass it explicitly on save
             serializer.save(user_id=data['user'])
@@ -290,6 +298,7 @@ class LeaveViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'], url_path='review')
+    @transaction.atomic
     def review(self, request, pk=None):
         user = request.user
         perms = user.role.permissions.values_list('code', flat=True) if user.role else []
@@ -298,11 +307,17 @@ class LeaveViewSet(viewsets.ModelViewSet):
             return Response({"detail": "No permission to review leaves."}, status=status.HTTP_403_FORBIDDEN)
             
         leave_request = self.get_object()
+        get_user_model().objects.select_for_update().get(pk=leave_request.user_id)
+        leave_request.refresh_from_db()
         new_status = request.data.get('status')
         comment = request.data.get('comment', '')
         
-        if new_status not in ['APPROVED', 'REJECTED', 'CANCELLED']:
-            return Response({"detail": "Invalid status parameter."}, status=status.HTTP_400_BAD_REQUEST)
+        transitions = {
+            'PENDING': {'APPROVED', 'REJECTED', 'CANCELLED'},
+            'APPROVED': {'CANCELLED'},
+        }
+        if new_status not in transitions.get(leave_request.status, ()):
+            return Response({"detail": "Invalid leave status transition."}, status=status.HTTP_400_BAD_REQUEST)
             
         leave_request.status = new_status
         leave_request.reviewer = user
@@ -321,13 +336,13 @@ class LeaveViewSet(viewsets.ModelViewSet):
 
         # SL/CL calculation logic for current year
         accrual_start_this_year = max(doj, current_year_start)
-        months_this_year = (today.year - accrual_start_this_year.year) * 12 + today.month - accrual_start_this_year.month + 1
+        months_this_year = max(0, (today.year - accrual_start_this_year.year) * 12 + today.month - accrual_start_this_year.month + 1)
 
         sl_accrued = min(months_this_year * 0.5, 6.0)
         cl_accrued = min(months_this_year * 0.5, 6.0)
 
         # PL calculation from DOJ
-        total_months = (today.year - doj.year) * 12 + today.month - doj.month + 1
+        total_months = max(0, (today.year - doj.year) * 12 + today.month - doj.month + 1)
         pl_accrued = total_months * 1.0
 
         # Used leaves (we subtract immediately on PENDING or APPROVED)
@@ -360,7 +375,10 @@ class LeaveViewSet(viewsets.ModelViewSet):
         perms = user.role.permissions.values_list('code', flat=True) if user.role else []
         
         if target_user_id and 'attendance:view_all' in perms:
-            target_user = user.__class__.objects.get(id=target_user_id)
+            try:
+                target_user = get_user_model().objects.get(id=target_user_id)
+            except (get_user_model().DoesNotExist, ValueError):
+                return Response({"detail": "Employee not found."}, status=status.HTTP_404_NOT_FOUND)
         else:
             target_user = user
 

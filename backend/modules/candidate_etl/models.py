@@ -24,17 +24,8 @@ class CandidateProfile(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.candidate_id:
-            # Pattern: HF-CAN-YYYY-001
             year = timezone.now().year
-            last_candidate = CandidateProfile.objects.filter(candidate_id__startswith=f"HF-CAN-{year}").order_by('-candidate_id').first()
-            
-            if last_candidate:
-                last_id = int(last_candidate.candidate_id.split('-')[-1])
-                new_id = last_id + 1
-            else:
-                new_id = 1
-            
-            self.candidate_id = f"HF-CAN-{year}-{new_id:04d}"
+            self.candidate_id = f'HF-CAN-{year}-{uuid.uuid4().hex[:16].upper()}'
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -71,6 +62,10 @@ class IngestionLog(models.Model):
     account_email = models.EmailField()
     email_uid = models.CharField(max_length=100)
     message = models.ForeignKey('communication_hub.MailMessage', on_delete=models.SET_NULL, null=True, blank=True, related_name='etl_logs')
+    attachment = models.OneToOneField(
+        'communication_hub.MailAttachment', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='ingestion_log',
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     error_message = models.TextField(blank=True)
     processed_at = models.DateTimeField(auto_now_add=True)

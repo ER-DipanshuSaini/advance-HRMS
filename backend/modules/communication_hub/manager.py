@@ -1,12 +1,37 @@
 import imaplib
 import smtplib
+import ssl
 import email
 from email.header import decode_header
 from datetime import datetime
+from django.conf import settings
 from django.utils import timezone
 import quopri
 
 class MailManager:
+    @staticmethod
+    def check_mail_endpoint(host, port, allowed_ports):
+        if not isinstance(host, str) or not host or not 1 <= port <= 65535:
+            raise ValueError('Invalid mailbox server or port.')
+        if not settings.DEBUG and (
+            host.lower().rstrip('.') not in settings.MAIL_ALLOWED_HOSTS or port not in allowed_ports
+        ):
+            raise ValueError('Mailbox server is outside the configured allowlist.')
+
+    @staticmethod
+    def connect_smtp(host, port):
+        MailManager.check_mail_endpoint(host, port, {465, 587})
+        tls_context = ssl.create_default_context()
+        if port == 465:
+            return smtplib.SMTP_SSL(host, port, timeout=30, context=tls_context)
+        smtp = smtplib.SMTP(host, port, timeout=30)
+        try:
+            smtp.starttls(context=tls_context)
+            return smtp
+        except (OSError, smtplib.SMTPException):
+            smtp.close()
+            raise
+
     @staticmethod
     def validate_credentials(config):
         """
@@ -15,20 +40,22 @@ class MailManager:
         """
         # 1. Test IMAP
         try:
-            imap = imaplib.IMAP4_SSL(config['imap_host'], int(config['imap_port']))
-            imap.login(config['email'], config['password'])
-            imap.logout()
-        except Exception as e:
-            return False, f"Incoming (IMAP) Login Failed: {str(e)}"
+            port = int(config['imap_port'])
+            MailManager.check_mail_endpoint(config['imap_host'], port, {993})
+            with imaplib.IMAP4_SSL(
+                config['imap_host'], port,
+                timeout=30, ssl_context=ssl.create_default_context(),
+            ) as imap:
+                imap.login(config['email'], config['password'])
+        except (OSError, ValueError, TypeError, KeyError, imaplib.IMAP4.error):
+            return False, "Incoming (IMAP) connection or login failed."
 
         # 2. Test SMTP
         try:
-            smtp = smtplib.SMTP(config['smtp_host'], int(config['smtp_port']))
-            smtp.starttls()
-            smtp.login(config['email'], config['password'])
-            smtp.quit()
-        except Exception as e:
-            return False, f"Outgoing (SMTP) Login Failed: {str(e)}"
+            with MailManager.connect_smtp(config['smtp_host'], int(config['smtp_port'])) as smtp:
+                smtp.login(config['email'], config['password'])
+        except (OSError, ValueError, TypeError, KeyError, smtplib.SMTPException):
+            return False, "Outgoing (SMTP) connection or login failed."
 
         return True, None
 
@@ -55,8 +82,13 @@ class MailManager:
         """
         Fetches the latest 'limit' emails from the specified folder.
         """
+        imap = None
         try:
-            imap = imaplib.IMAP4_SSL(account.imap_host, account.imap_port)
+            MailManager.check_mail_endpoint(account.imap_host, account.imap_port, {993})
+            imap = imaplib.IMAP4_SSL(
+                account.imap_host, account.imap_port,
+                timeout=30, ssl_context=ssl.create_default_context(),
+            )
             imap.login(account.email_address, account.password)
             
             # Use mapped folder name
@@ -64,13 +96,12 @@ class MailManager:
             status, _ = imap.select(target_folder)
             
             if status != 'OK':
-                print(f"Failed to select folder {target_folder} for {account.email_address}")
-                return []
+                raise RuntimeError(f"Could not select mailbox folder {target_folder}.")
 
             # Get latest UIDs
             status, messages = imap.uid('search', None, 'ALL')
             if status != 'OK':
-                return []
+                raise RuntimeError(f"Could not search mailbox folder {target_folder}.")
 
             uids = messages[0].split()
             latest_uids = uids[-limit:] if len(uids) > limit else uids
@@ -151,16 +182,18 @@ class MailManager:
                             'sender': from_header,
                             'recipient': msg.get("To"),
                             'body_text': body_text,
-                            'body_html': body_html or body_text,
+                            'body_html': body_html,
                             'received_at': date_parsed,
                             'attachments': attachments,
                         })
 
-            imap.logout()
             return email_data
-        except Exception as e:
-            print(f"Error fetching emails: {e}")
-            return []
+        finally:
+            if imap is not None:
+                try:
+                    imap.logout()
+                except (OSError, imaplib.IMAP4.error):
+                    pass
 
     @staticmethod
     def sync_account_to_db(account, limit=50, folder='INBOX'):
@@ -190,7 +223,7 @@ class MailManager:
             total_new += MailManager._save_emails_to_db(account, email_data, folder=schema_folder)
             
         account.last_sync_at = timezone.now()
-        account.save()
+        account.save(update_fields=['last_sync_at'])
         return total_new
 
     @staticmethod
@@ -283,11 +316,9 @@ class MailManager:
             if cc: recipients.append(cc)
             if bcc: recipients.append(bcc)
 
-            smtp = smtplib.SMTP(account.smtp_host, account.smtp_port)
-            smtp.starttls()
-            smtp.login(account.email_address, account.password)
-            smtp.sendmail(account.email_address, recipients, msg.as_string())
-            smtp.quit()
+            with MailManager.connect_smtp(account.smtp_host, account.smtp_port) as smtp:
+                smtp.login(account.email_address, account.password)
+                smtp.sendmail(account.email_address, recipients, msg.as_string())
             return True, None
         except Exception as e:
             return False, str(e)

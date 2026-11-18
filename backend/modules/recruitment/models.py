@@ -1,5 +1,7 @@
 from django.db import models
+from django.conf import settings
 from django.utils import timezone
+from uuid import uuid4
 from modules.organizations.models import Department
 from modules.candidate_etl.models import CandidateProfile
 
@@ -64,17 +66,7 @@ class JobPosition(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.job_id:
-            last_job = JobPosition.objects.all().order_by('-id').first()
-            if last_job:
-                try:
-                    last_num = int(last_job.job_id.split('-')[1])
-                    new_num = last_num + 1
-                except (IndexError, ValueError):
-                    new_num = 10001 + JobPosition.objects.count()
-            else:
-                new_num = 10001
-            
-            self.job_id = f"REQ-{new_num}"
+            self.job_id = f'REQ-{uuid4().hex[:16].upper()}'
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -94,6 +86,7 @@ class JobApplication(models.Model):
     job_position = models.ForeignKey(JobPosition, on_delete=models.CASCADE, related_name='applications')
     candidate = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE, related_name='job_applications')
     current_stage = models.CharField(max_length=50, choices=STAGE_CHOICES, default='SHORTLIST')
+    employee = models.OneToOneField(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT)
     
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(default=timezone.now)
@@ -105,3 +98,36 @@ class JobApplication(models.Model):
 
     def __str__(self):
         return f"{self.candidate.name} - {self.job_position.title} ({self.current_stage})"
+
+
+class ApplicationStageChange(models.Model):
+    application = models.ForeignKey(JobApplication, on_delete=models.CASCADE, related_name='stage_changes')
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    previous_stage = models.CharField(max_length=50)
+    new_stage = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Interview(models.Model):
+    application = models.ForeignKey(JobApplication, on_delete=models.CASCADE, related_name='interviews')
+    interviewer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    scheduled_at = models.DateTimeField()
+    duration_minutes = models.PositiveSmallIntegerField(default=30)
+    technical_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    communication_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    feedback = models.TextField(blank=True)
+
+
+class Offer(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = 'DRAFT', 'Draft'
+        SENT = 'SENT', 'Sent'
+        ACCEPTED = 'ACCEPTED', 'Accepted'
+        DECLINED = 'DECLINED', 'Declined'
+        WITHDRAWN = 'WITHDRAWN', 'Withdrawn'
+
+    application = models.OneToOneField(JobApplication, on_delete=models.CASCADE, related_name='offer')
+    annual_salary_lpa = models.DecimalField(max_digits=10, decimal_places=2)
+    start_date = models.DateField()
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
+    updated_at = models.DateTimeField(auto_now=True)

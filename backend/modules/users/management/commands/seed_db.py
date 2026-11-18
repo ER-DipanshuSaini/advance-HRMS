@@ -1,4 +1,7 @@
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
+from secrets import token_urlsafe
 from modules.roles.models import Role, Permission
 from modules.organizations.models import Department, Designation
 from modules.users.models import User
@@ -7,13 +10,14 @@ from modules.users.models import User
 class Command(BaseCommand):
     help = "Seeds the database with core HireFlow IAM and Organization data."
 
+    @transaction.atomic
     def handle(self, *args, **kwargs):
-        # 1. Clear existing data to avoid conflicts on fresh seed
-        User.objects.all().delete()
-        Role.objects.all().delete()
-        Permission.objects.all().delete()
-        Designation.objects.all().delete()
-        Department.objects.all().delete()
+        if not settings.DEBUG:
+            raise CommandError('Demo data can only be seeded with DEBUG enabled.')
+        admin_password = token_urlsafe(24)
+        employee_password = token_urlsafe(24)
+        if any(model.objects.exists() for model in (User, Role, Designation, Department)):
+            raise CommandError('Seed demo data into a fresh database.')
 
         # 2. Permissions (Refactored for Concise Clarity)
         perms_data = [
@@ -140,8 +144,8 @@ class Command(BaseCommand):
 
         perms = {}
         for code, name, module, desc in perms_data:
-            p = Permission.objects.create(
-                name=name, code=code, module=module, description=desc
+            p, _ = Permission.objects.get_or_create(
+                code=code, defaults={'name': name, 'module': module, 'description': desc},
             )
             perms[code] = p
 
@@ -170,7 +174,7 @@ class Command(BaseCommand):
             email="admin@hireflow.com",
             first_name="Dipanshu",
             last_name="Saini",
-            password="password",
+            password=admin_password,
             role=admin_role,
             department=admin_dept,
             designation=founder_desig,
@@ -182,7 +186,7 @@ class Command(BaseCommand):
             email="employee@hireflow.com",
             first_name="Rajan",
             last_name="Kumar",
-            password="password",
+            password=employee_password,
             role=emp_role,
             department=sw_dept,
             designation=sde1_desig,
@@ -199,3 +203,5 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS("Successfully seeded HireFlow Employee database!")
         )
+        self.stdout.write(f'Demo admin login: {admin_user.email} / {admin_password}')
+        self.stdout.write(f'Demo employee login: {emp_user.email} / {employee_password}')
