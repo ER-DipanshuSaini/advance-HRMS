@@ -1,919 +1,24 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import DOMPurify from 'dompurify';
-import {
-  Mail, Send, FileText, Trash2, Star, Search,
-  Inbox, RefreshCw, Pencil, ChevronDown, ChevronRight, ChevronLeft,
-  Reply, ReplyAll, Forward, MoreHorizontal, Paperclip,
-  X, Settings, Check, AlertCircle, ArrowLeft,
-  Bold, Italic, Underline, Link2, AlignLeft, AlignCenter,
-  AlignRight, List, ListOrdered, Plus, Filter, Tag,
-  UserCircle, Building2, ShieldCheck,
-  ExternalLink, Image as ImageIcon, Strikethrough,
-  RotateCcw, RotateCw, MinusSquare, Maximize2, CheckCircle2,
-  Database, Cpu, Zap, Server, UserCheck, Loader2
-} from 'lucide-react';
+import { Mail, Send, FileText, Trash2, Star, Search, Inbox, RefreshCw, Pencil, ChevronRight, ChevronLeft, X, Check, Plus, Filter, ShieldCheck, Database, Zap, Server, UserCheck } from 'lucide-react';
 import { apiClient } from '../../api/apiClient';
 import Button from '../../components/common/Button/Button';
-import Badge from '../../components/common/Badge/Badge';
 import Toast from '../../components/common/Toast/Toast';
 import styles from './EmailClient.module.css';
+import ComposeWindow from './ComposeWindow';
+import { AccountConfigModal, AccountSwitcher } from './MailboxAccounts';
+import FilterPanel from './FilterPanel';
+import EmailView from './EmailView';
+import { API_BASE, getAvatarColor, stripHtml } from './mailUtils';
 
-const API_BASE = '/communication';
 const PAGE_SIZE = 50;
+const defaultFilters = { readStatus: '', starred: '', hasAttachment: '', sortBy: 'newest' };
 
-const PROVIDER_ICONS = {
-  gmail: { label: 'Gmail', color: '#ea4335', icon: <Mail size={22} /> },
-  outlook: { label: 'Outlook', color: '#0078d4', icon: <Mail size={22} /> },
-  hostinger: { label: 'Hostinger', color: '#4b32c3', icon: <Mail size={22} /> },
-  custom: { label: 'Custom IMAP', color: '#64748b', icon: <Mail size={22} /> },
-};
-
-/* ═══════════════════════════════════════════════════
-   RICH TEXT EDITOR TOOLBAR
-═══════════════════════════════════════════════════ */
-function RichEditor({ value, onChange, placeholder = 'Write your message here...' }) {
-  const editorRef = useRef(null);
-
-  useEffect(() => {
-    if (editorRef.current && value && !editorRef.current.innerHTML) {
-      editorRef.current.innerHTML = DOMPurify.sanitize(value, {
-        ALLOWED_TAGS: ['p', 'div', 'br', 'b', 'strong', 'i', 'em', 'u', 's', 'strike', 'ul', 'ol', 'li', 'a', 'blockquote'],
-        ALLOWED_ATTR: ['href', 'align'],
-      });
-    }
-  }, [value]);
-
-  const exec = (cmd, val = null) => {
-    editorRef.current?.focus();
-    document.execCommand(cmd, false, val);
-  };
-
-  const handleInput = () => {
-    onChange(editorRef.current?.innerHTML || '');
-  };
-
-  const handleLink = () => {
-    const url = window.prompt('Enter URL:', 'https://');
-    if (/^https?:\/\//i.test(url || '')) exec('createLink', url);
-  };
-
-
-
-  const TOOLS = [
-    {
-      group: 'history', items: [
-        { title: 'Undo', icon: <RotateCcw size={14} />, cmd: () => exec('undo') },
-        { title: 'Redo', icon: <RotateCw size={14} />, cmd: () => exec('redo') },
-      ]
-    },
-    {
-      group: 'format', items: [
-        { title: 'Bold', icon: <Bold size={14} />, cmd: () => exec('bold') },
-        { title: 'Italic', icon: <Italic size={14} />, cmd: () => exec('italic') },
-        { title: 'Underline', icon: <Underline size={14} />, cmd: () => exec('underline') },
-        { title: 'Strikethrough', icon: <Strikethrough size={14} />, cmd: () => exec('strikeThrough') },
-      ]
-    },
-    {
-      group: 'align', items: [
-        { title: 'Align Left', icon: <AlignLeft size={14} />, cmd: () => exec('justifyLeft') },
-        { title: 'Align Center', icon: <AlignCenter size={14} />, cmd: () => exec('justifyCenter') },
-        { title: 'Align Right', icon: <AlignRight size={14} />, cmd: () => exec('justifyRight') },
-      ]
-    },
-    {
-      group: 'list', items: [
-        { title: 'Bullet List', icon: <List size={14} />, cmd: () => exec('insertUnorderedList') },
-        { title: 'Numbered List', icon: <ListOrdered size={14} />, cmd: () => exec('insertOrderedList') },
-      ]
-    },
-    {
-      group: 'insert', items: [
-        { title: 'Insert Link', icon: <Link2 size={14} />, cmd: handleLink },
-      ]
-    },
-  ];
-
-  return (
-    <div className={styles.richEditor}>
-      <div className={styles.richToolbar}>
-        {TOOLS.map((group, gi) => (
-          <React.Fragment key={group.group}>
-            {gi > 0 && <div className={styles.toolbarDivider} />}
-            <div className={styles.toolbarGroup}>
-              {group.items.map(tool => (
-                <button
-                  key={tool.title}
-                  type="button"
-                  className={styles.toolbarBtn}
-                  title={tool.title}
-                  onMouseDown={e => { e.preventDefault(); tool.cmd(); }}
-                >
-                  {tool.icon}
-                </button>
-              ))}
-            </div>
-          </React.Fragment>
-        ))}
-      </div>
-      <div
-        ref={editorRef}
-        className={styles.richBody}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleInput}
-        onPaste={event => {
-          event.preventDefault();
-          exec('insertText', event.clipboardData.getData('text/plain'));
-          handleInput();
-        }}
-        onDrop={event => event.preventDefault()}
-        data-placeholder={placeholder}
-      />
-    </div>
-  );
+function compareMessages(first, second, sortBy) {
+  if (sortBy === 'sender') return (first.sender || '').localeCompare(second.sender || '');
+  const dateDifference = Date.parse(first.received_at) - Date.parse(second.received_at);
+  return sortBy === 'oldest' ? dateDifference : -dateDifference;
 }
-
-/* ═══════════════════════════════════════════════════
-   EMAIL CHIP INPUT
-═══════════════════════════════════════════════════ */
-function EmailChipInput({ value, onChange, placeholder }) {
-  const [inputVal, setInputVal] = useState('');
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addEmail(inputVal);
-    } else if (e.key === 'Backspace' && !inputVal && value.length > 0) {
-      onChange(value.slice(0, -1));
-    }
-  };
-
-  const handleBlur = () => { if (inputVal) addEmail(inputVal); };
-
-  const addEmail = (email) => {
-    const trimmed = email.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi)?.[0] || email.trim().replace(/,$/, '');
-    if (trimmed && !value.includes(trimmed)) onChange([...value, trimmed]);
-    setInputVal('');
-  };
-
-  return (
-    <div className={styles.emailChipContainer} onClick={() => document.getElementById(`chip-${placeholder}`)?.focus()}>
-      {value.map(email => (
-        <span key={email} className={styles.emailChip}>
-          {email} <button type="button" onMouseDown={(e) => { e.preventDefault(); onChange(value.filter(em => em !== email)); }}><X size={10} /></button>
-        </span>
-      ))}
-      <input
-        id={`chip-${placeholder}`}
-        className={styles.emailChipInput}
-        value={inputVal}
-        onChange={e => setInputVal(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
-        placeholder={value.length === 0 ? placeholder : ''}
-      />
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   COMPOSE WINDOW (Gmail-style floating panel)
-═══════════════════════════════════════════════════ */
-function ComposeWindow({ onClose, onSend, onSaveDraft, onToast, activeAccount, replyTo = null }) {
-  const initialTo = replyTo?.isDraft ? (replyTo.recipient ? replyTo.recipient.split(',').map(e => e.trim()) : []) :
-    replyTo?.isForward ? [] :
-      replyTo?.isReplyAll ? [replyTo.fromEmail, ...(replyTo?.cc ? replyTo.cc.split(',').map(e => e.trim()) : [])].filter(Boolean) :
-        replyTo ? [replyTo.fromEmail] : [];
-
-  const [to, setTo] = useState(initialTo);
-  const [cc, setCc] = useState(replyTo?.isDraft && replyTo.cc ? replyTo.cc.split(',').map(e => e.trim()) : []);
-  const [bcc, setBcc] = useState(replyTo?.isDraft && replyTo.bcc ? replyTo.bcc.split(',').map(e => e.trim()) : []);
-  const [subject, setSubject] = useState(
-    replyTo?.isDraft ? replyTo.subject :
-      replyTo?.isForward ? `Fwd: ${replyTo.subject}` :
-        replyTo ? `Re: ${replyTo.subject}` : ''
-  );
-  const [body, setBody] = useState(replyTo?.isDraft ? (replyTo.body_html || replyTo.body_text || '') : '');
-  const [showCc, setShowCc] = useState(replyTo?.isDraft && (replyTo.cc || replyTo.bcc) ? true : false);
-  const [minimized, setMinimized] = useState(false);
-  const [maximized, setMaximized] = useState(false);
-  const [attachments, setAttachments] = useState([]);
-  const fileRef = useRef(null);
-
-  const formatSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
-  const handleAttach = (e) => {
-    const files = Array.from(e.target.files || []);
-    const validFiles = [];
-    let hasLarge = false;
-    files.forEach(f => {
-      if (f.size > 10 * 1024 * 1024) hasLarge = true;
-      else validFiles.push({ name: f.name, size: formatSize(f.size), file: f });
-    });
-    if (hasLarge && onToast) {
-      onToast({ message: 'Files larger than 10MB are not allowed.', type: 'error' });
-    }
-    setAttachments(prev => [...prev, ...validFiles]);
-  };
-
-  const [lastSaved, setLastSaved] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const lastContent = useRef({ to, cc, bcc, subject, body });
-
-  useEffect(() => {
-    lastContent.current = { to, cc, bcc, subject, body };
-  }, [to, cc, bcc, subject, body]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const current = { to, cc, bcc, subject, body };
-      const hasChanged = JSON.stringify(current) !== JSON.stringify(lastContent.current);
-
-      if (hasChanged || (replyTo?.isDraft && !lastSaved)) {
-        handleDraftAuto();
-      }
-    }, 30000);
-    return () => clearInterval(timer);
-  }, [to, cc, bcc, subject, body]);
-
-  const handleDraftAuto = async () => {
-    setIsSaving(true);
-    await onSaveDraft({
-      to: to.join(', '),
-      cc: cc.join(', '),
-      bcc: bcc.join(', '),
-      subject, body,
-      is_draft: true,
-      draft_id: replyTo?.id || null
-    }, true);
-    setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    setIsSaving(false);
-  };
-
-  const handleSend = () => {
-    if (to.length === 0) {
-      if (onToast) onToast({ message: 'Please specify at least one recipient.', type: 'error' });
-      return;
-    }
-    onSend({
-      to: to.join(', '),
-      cc: cc.join(', '),
-      bcc: bcc.join(', '),
-      subject, body,
-      attachments: attachments.map(a => a.file), // Pass the actual File objects
-      draft_id: replyTo?.id || null
-    });
-    onClose();
-  };
-
-  const handleDraft = () => {
-    onSaveDraft({
-      to: to.join(', '),
-      cc: cc.join(', '),
-      bcc: bcc.join(', '),
-      subject, body,
-      is_draft: true,
-      draft_id: replyTo?.id || null
-    });
-    onClose();
-  };
-
-  return (
-    <motion.div
-      className={`${styles.composeWindow} ${maximized ? styles.composeMaximized : ''} ${minimized ? styles.composeMinimized : ''}`}
-      initial={{ y: 80, opacity: 0, scale: 0.95 }}
-      animate={{ y: 0, opacity: 1, scale: 1 }}
-      exit={{ y: 80, opacity: 0, scale: 0.95 }}
-      transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-    >
-      {/* Header */}
-      <div className={styles.composeHead}>
-        <div className={styles.composeHeadLeft}>
-          <Pencil size={14} color="#ffffff" />
-          <span style={{ color: '#ffffff' }}>
-            {replyTo?.isDraft ? `Draft — ${replyTo.subject || '(No Subject)'}` :
-              replyTo ? `Reply — ${replyTo.subject}` : 'New Message'}
-          </span>
-        </div>
-        <div className={styles.composeHeadActions}>
-          <button title="Discard" onClick={onClose} className={styles.composeHeadDiscard}>
-            <Trash2 size={14} />
-          </button>
-          <div className={styles.composeHeadDivider} />
-          <button title="Minimize" onClick={() => setMinimized(m => !m)}>
-            <MinusSquare size={15} />
-          </button>
-          <button title={maximized ? 'Restore' : 'Expand'} onClick={() => setMaximized(m => !m)}>
-            <Maximize2 size={15} />
-          </button>
-          <button title="Close" onClick={onClose}>
-            <X size={15} />
-          </button>
-        </div>
-      </div>
-
-      {!minimized && (
-        <>
-          {/* Fields */}
-          <div className={styles.composeFields}>
-            <div className={styles.composeRow}>
-              <span className={styles.composeField}>To</span>
-              <EmailChipInput value={to} onChange={setTo} placeholder="Recipients" />
-              <button className={styles.ccToggle} onClick={() => setShowCc(v => !v)}>Cc Bcc</button>
-            </div>
-            {showCc && (
-              <>
-                <div className={styles.composeSep} />
-                <div className={styles.composeRow}>
-                  <span className={styles.composeField}>Cc</span>
-                  <EmailChipInput value={cc} onChange={setCc} placeholder="Carbon Copy" />
-                </div>
-                <div className={styles.composeSep} />
-                <div className={styles.composeRow}>
-                  <span className={styles.composeField}>Bcc</span>
-                  <EmailChipInput value={bcc} onChange={setBcc} placeholder="Blind Carbon Copy" />
-                </div>
-              </>
-            )}
-            <div className={styles.composeSep} />
-            <div className={styles.composeRow}>
-              <span className={styles.composeField}>Subject</span>
-              <input className={styles.composeInput} value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" />
-            </div>
-            <div className={styles.composeSep} />
-          </div>
-
-          {/* Rich editor */}
-          <RichEditor value={body} onChange={setBody} />
-
-          {/* Attachments */}
-          {attachments.length > 0 && (
-            <div className={styles.composeAttachments}>
-              {attachments.map((a, i) => (
-                <span key={i} className={styles.attachChip}>
-                  <Paperclip size={11} /> <span className={styles.attachName}>{a.name}</span> <span className={styles.attachSize}>({a.size})</span>
-                  <button onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))}><X size={10} /></button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Footer */}
-          <div className={styles.composeFooter}>
-            <div className={styles.composeFrom}>
-              <div className={styles.accountDotSmall} style={{ background: '#64748b' }} />
-              <span>{activeAccount?.email_address}</span>
-              {lastSaved && <span className={styles.draftStatus}> • Saved at {lastSaved}</span>}
-              {isSaving && <Loader2 size={12} className={styles.spinning} />}
-            </div>
-            <div className={styles.composeActions}>
-              <input ref={fileRef} type="file" multiple hidden onChange={handleAttach} />
-              <button className={styles.composeToolBtn} title="Attach File" onClick={() => fileRef.current?.click()}>
-                <Paperclip size={15} />
-              </button>
-              <Button variant="outline" onClick={handleDraft} style={{ marginRight: '0.5rem' }}>
-                Save Draft
-              </Button>
-              <Button variant="primary" icon={<Send size={14} />} onClick={handleSend}>
-                Send
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
-    </motion.div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   ACCOUNT CONFIGURATION MODAL (2-Step Validation)
-   ═══════════════════════════════════════════════════ */
-function AccountConfigModal({ onClose, onSave, onToast, editAccount = null }) {
-  const [step, setStep] = useState(1);
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationError, setValidationError] = useState(null);
-
-  const [config, setConfig] = useState(editAccount || {
-    provider: 'gmail', email_address: '', password: '', display_name: '',
-    imap_host: 'imap.gmail.com', imap_port: 993,
-    smtp_host: 'smtp.gmail.com', smtp_port: 587,
-  });
-
-  const PROVIDERS = [
-    { id: 'gmail', label: 'Gmail', imap_host: 'imap.gmail.com', smtp_host: 'smtp.gmail.com' },
-    { id: 'outlook', label: 'Outlook / M365', imap_host: 'outlook.office365.com', smtp_host: 'smtp.office365.com' },
-    { id: 'hostinger', label: 'Hostinger Mail', imap_host: 'imap.hostinger.com', smtp_host: 'smtp.hostinger.com' },
-    { id: 'custom', label: 'Custom SMTP/IMAP', imap_host: '', smtp_host: '' },
-  ];
-
-  const [isSyncingInitial, setIsSyncingInitial] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-
-  const selectProvider = (p) => {
-    setConfig(c => ({ ...c, provider: p.id, imap_host: p.imap_host, smtp_host: p.smtp_host }));
-    setStep(2);
-  };
-
-  const handleValidate = async () => {
-    setIsValidating(true);
-    setValidationError(null);
-    try {
-      const res = await apiClient(`${API_BASE}/validate/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      });
-      if (res.success) {
-        setIsSuccess(true);
-        setIsSyncingInitial(true);
-        await onSave(config);
-      } else {
-        setValidationError(res.error || 'Validation failed');
-      }
-    } catch (err) {
-      setValidationError(err.message || 'Connection error. Check settings.');
-    } finally {
-      setIsValidating(false);
-      // We don't set setIsSyncingInitial(false) here because if onSave finishes, modal closes anyway
-    }
-  };
-
-  return (
-    <div className={styles.configOverlay} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <motion.div
-        className={styles.configModal}
-        initial={{ scale: 0.94, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-      >
-        <div className={styles.configHeader}>
-          <div className={styles.configHeaderLeft}>
-            <div className={styles.configIconBox}><Mail size={18} /></div>
-            <div>
-              <h3 className={styles.configTitle}>{editAccount ? 'Edit Account' : 'Add Email Account'}</h3>
-              <div className={styles.stepperContainer}>
-                {[1, 2].map(n => (
-                  <div key={n} className={`${styles.stepDot} ${step >= n ? styles.stepDotActive : ''}`} />
-                ))}
-                <span className={styles.configSub}>Step {step} of 2: {step === 1 ? 'Choose Provider' : 'Enter Credentials'}</span>
-              </div>
-            </div>
-          </div>
-          <button className={styles.configCloseBtn} onClick={onClose}><X size={17} /></button>
-        </div>
-
-        <div className={styles.configBody}>
-          {isSyncingInitial ? (
-            <div className={styles.syncLoadingState}>
-              <div className={styles.syncLoadingIcon}>
-                <div className={styles.pulseRing} />
-                <ShieldCheck size={40} className={styles.successIcon} />
-              </div>
-              <h4 className={styles.syncLoadingTitle}>Validation Success!</h4>
-              <p className={styles.syncLoadingMsg}>
-                Your credentials are secure. We're now fetching your some of emails to get you started...
-              </p>
-              <div className={styles.inlineLoader}>
-                <div className={styles.inlineLoaderBar} />
-              </div>
-            </div>
-          ) : step === 1 ? (
-            <div className={styles.providerGrid}>
-              {PROVIDERS.map(p => {
-                const brandColor = PROVIDER_ICONS[p.id]?.color || '#f1f5f9';
-                return (
-                  <button
-                    key={p.id}
-                    className={`${styles.providerCard} ${config.provider === p.id ? styles.providerActive : ''}`}
-                    onClick={() => selectProvider(p)}
-                  >
-                    <div className={styles.providerIconCircle} style={{ background: `${brandColor}15`, color: brandColor }}>
-                      {PROVIDER_ICONS[p.id]?.icon || <Mail size={22} />}
-                    </div>
-                    <span>{p.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className={styles.configForm}>
-              <div className={styles.configFormGrid}>
-                <div className={styles.configFormGroup}>
-                  <label>Display Name</label>
-                  <input className={styles.configInput} placeholder="e.g. Sarah J." value={config.display_name} onChange={e => setConfig({ ...config, display_name: e.target.value })} />
-                </div>
-                <div className={styles.configFormGroup}>
-                  <label>Email Address</label>
-                  <input className={styles.configInput} type="email" placeholder="name@company.com" value={config.email_address} onChange={e => setConfig({ ...config, email_address: e.target.value })} />
-                </div>
-                <div className={styles.configFormGroup}>
-                  <label>Application Password</label>
-                  <input className={styles.configInput} type="password" placeholder="••••••••••••" value={config.password} onChange={e => setConfig({ ...config, password: e.target.value })} />
-                </div>
-
-                {config.provider === 'custom' && (
-                  <>
-                    <div className={styles.configFormGroup}><label>IMAP Host</label><input className={styles.configInput} value={config.imap_host} onChange={e => setConfig({ ...config, imap_host: e.target.value })} /></div>
-                    <div className={styles.configFormGroup}><label>SMTP Host</label><input className={styles.configInput} value={config.smtp_host} onChange={e => setConfig({ ...config, smtp_host: e.target.value })} /></div>
-                  </>
-                )}
-              </div>
-
-              {validationError && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={styles.configError}
-                >
-                  <AlertCircle size={14} /> <span>{validationError}</span>
-                </motion.div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {!isSyncingInitial && (
-          <div className={styles.configFooter}>
-            {step === 2 && <Button variant="outline" onClick={() => setStep(1)}>Back</Button>}
-            <span style={{ flex: 1 }} />
-            {step === 2 && (
-              <Button
-                variant="primary"
-                loading={isValidating}
-                onClick={handleValidate}
-              >
-                {isValidating ? 'Validating...' : 'Validate & Connect'}
-              </Button>
-            )}
-          </div>
-        )}
-      </motion.div>
-    </div>
-  );
-}
-
-
-/* ═══════════════════════════════════════════════════
-   ACCOUNT SWITCHER DROPDOWN
-═══════════════════════════════════════════════════ */
-function AccountSwitcher({ accounts, activeId, onSwitch, onAdd, onEdit, onRemove }) {
-  const [open, setOpen] = useState(false);
-  const active = (Array.isArray(accounts) && accounts.find(a => a.id === activeId)) || (accounts?.[0]) || {
-    email: 'No Account',
-    provider: 'custom',
-    avatar: '?',
-    avatarColor: '#94a3b8'
-  };
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  return (
-    <div className={styles.accountSwitcherWrap} ref={ref}>
-      <button className={styles.accountSwitcherBtn} onClick={() => setOpen(o => !o)}>
-        <div className={styles.accountMeta}>
-          <span className={styles.accountEmail}>{active.email_address || active.email}</span>
-          <span className={styles.accountDisplayName}>{active.display_name || 'Switch Account'}</span>
-        </div>
-        <ChevronDown size={18} className={open ? `${styles.chevronDown} ${styles.chevronUp}` : styles.chevronDown} />
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className={styles.accountDropdown}
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            <div className={styles.dropdownSection}>Manage Accounts</div>
-
-            <div className={styles.accountsList}>
-              {accounts.map(acc => (
-                <div
-                  key={acc.id}
-                  className={`${styles.dropdownAccountRow} ${acc.id === activeId ? styles.dropdownAccountActive : ''}`}
-                  onClick={() => { onSwitch(acc.id); setOpen(false); }}
-                >
-                  <div className={styles.dropdownAccountHeader}>
-                    <span className={styles.dropdownEmail}>{acc.email_address || acc.email}</span>
-                    <button
-                      className={styles.dropdownRemoveBtn}
-                      title={`Remove ${acc.email}`}
-                      onClick={(e) => { e.stopPropagation(); setOpen(false); onRemove(acc.id); }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                  <div className={styles.dropdownAccountFooter}>
-                    <span className={styles.dropdownDisplayName}>{acc.display_name}</span>
-                    {acc.id === activeId && <span className={styles.activeBadge}>Active</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className={styles.dropdownDivider} />
-
-            <button className={styles.dropdownAddBtn} onClick={() => { onAdd(); setOpen(false); }}>
-              <Plus size={16} /> Add another account
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   FILTER PANEL (Deep Filters)
-═══════════════════════════════════════════════════ */
-function FilterPanel({ filters, onChange, onClear, emailCount }) {
-  return (
-    <motion.div
-      className={styles.filterPanel}
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: 'auto', opacity: 1 }}
-      exit={{ height: 0, opacity: 0 }}
-      transition={{ duration: 0.2 }}
-    >
-      <div className={styles.filterGrid}>
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel}>Read Status</label>
-          <select
-            className={styles.filterSelect}
-            value={filters.readStatus}
-            onChange={e => onChange({ ...filters, readStatus: e.target.value })}
-          >
-            <option value="">All</option>
-            <option value="unread">Unread only</option>
-            <option value="read">Read only</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel}>Starred</label>
-          <select
-            className={styles.filterSelect}
-            value={filters.starred}
-            onChange={e => onChange({ ...filters, starred: e.target.value })}
-          >
-            <option value="">All</option>
-            <option value="yes">Starred only</option>
-            <option value="no">Not starred</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel}>Has Attachment</label>
-          <select
-            className={styles.filterSelect}
-            value={filters.hasAttachment}
-            onChange={e => onChange({ ...filters, hasAttachment: e.target.value })}
-          >
-            <option value="">All</option>
-            <option value="yes">With attachments</option>
-            <option value="no">Without attachments</option>
-          </select>
-        </div>
-
-
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel}>Sort By</label>
-          <select
-            className={styles.filterSelect}
-            value={filters.sortBy}
-            onChange={e => onChange({ ...filters, sortBy: e.target.value })}
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="sender">Sender A–Z</option>
-          </select>
-        </div>
-      </div>
-
-      <div className={styles.filterFooter}>
-        <span className={styles.filterResultCount}>
-          {emailCount} message{emailCount !== 1 ? 's' : ''} match filters
-        </span>
-        <Button variant="outline" onClick={onClear}>
-          <X size={13} /> Clear Filters
-        </Button>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   EMAIL VIEW PANEL
-═══════════════════════════════════════════════════ */
-function EmailView({ email, folder, onBack, onReply, onReplyAll, onForward, onTrash, onMarkUnread, onRecover }) {
-  const [downloadError, setDownloadError] = useState('');
-
-  async function downloadAttachment(attachment) {
-    setDownloadError('');
-    try {
-      const blob = await apiClient(`${API_BASE}/attachment/${attachment.id}/`, { responseType: 'blob' });
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = attachment.file_name;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
-    } catch (error) {
-      setDownloadError(error.message);
-    }
-  }
-
-  const [showMore, setShowMore] = useState(false);
-  const isOutgoing = folder === 'sent' || folder === 'drafts';
-  const isTrash = folder === 'trash';
-  const senderName = isOutgoing ? (email.recipient || 'Recipients') : (email.sender?.split('<')[0]?.trim() || email.sender);
-  const senderEmail = isOutgoing ? email.recipient : (email.sender?.match(/<([^>]+)>/)?.[1] || email.sender);
-  const avatarLetter = (senderName || '?')[0].toUpperCase();
-
-  const dateObj = new Date(email.received_at);
-  const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-  return (
-    <motion.div
-      className={styles.emailView}
-      key={email.id}
-      initial={{ opacity: 0, x: 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-    >
-      {/* View Header */}
-      <div className={styles.viewHeader}>
-        <button className={styles.viewBackBtn} onClick={onBack}>
-          <ArrowLeft size={15} />
-        </button>
-        <h2 className={styles.viewSubject}>{email.subject}</h2>
-        <div className={styles.viewHeaderActions}>
-          {!isOutgoing && (
-            <>
-              <button className={styles.viewActionBtn} title="Reply" onClick={() => onReply(email)}>
-                <Reply size={15} />
-              </button>
-              <button className={styles.viewActionBtn} title="Reply All" onClick={() => onReplyAll(email)}>
-                <ReplyAll size={15} />
-              </button>
-            </>
-          )}
-          <div className={styles.moreMenuWrapper}>
-            <button className={`${styles.viewActionBtn} ${showMore ? styles.viewActionBtnActive : ''}`} title="More options" onClick={() => setShowMore(!showMore)}>
-              <MoreHorizontal size={15} />
-            </button>
-            <AnimatePresence>
-              {showMore && (
-                <motion.div
-                  className={styles.moreDropdownMenu}
-                  initial={{ opacity: 0, y: -4, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <button onClick={() => { setShowMore(false); onForward(email); }}>
-                    <Forward size={14} /> Forward
-                  </button>
-                  {!isOutgoing && (
-                    <button onClick={() => { setShowMore(false); onMarkUnread(email); }}>
-                      <Mail size={14} /> Mark as unread
-                    </button>
-                  )}
-                  {isTrash && (
-                    <button onClick={() => { setShowMore(false); onRecover(email); }}>
-                      <RotateCcw size={14} /> Recover
-                    </button>
-                  )}
-                  <div className={styles.dropdownDivider} />
-                  <button className={styles.dangerText} onClick={() => { setShowMore(false); onTrash(email); }}>
-                    <Trash2 size={14} /> {isTrash ? 'Delete permanently' : 'Delete'}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </div>
-
-      {/* Sender meta */}
-      <div className={styles.viewMeta}>
-        <div
-          className={`${styles.emailAvatar} ${styles.avatarLg}`}
-          style={{ background: getAvatarColor(senderName), color: 'rgba(0,0,0,0.7)' }}
-        >
-          {avatarLetter}
-        </div>
-        <div className={styles.viewMetaInfo}>
-          <div className={styles.viewSender}>
-            <strong>{senderName}</strong>
-            <span className={styles.viewSenderEmail}>&lt;{senderEmail}&gt;</span>
-          </div>
-          <div className={styles.viewDate}>{dateStr} · {timeStr}</div>
-          {email.cc && <div className={styles.viewDate}>Cc: {email.cc}</div>}
-        </div>
-      </div>
-
-      {/* Body */}
-      {email.body_html ? (
-        <iframe
-          title="Email body"
-          className={styles.viewBody}
-          sandbox=""
-          referrerPolicy="no-referrer"
-          style={{ width: '100%', minHeight: 360, border: 0 }}
-          srcDoc={`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">${DOMPurify.sanitize(email.body_html, {
-            USE_PROFILES: { html: true },
-            FORBID_TAGS: ['form', 'iframe'],
-            FORBID_ATTR: ['srcset'],
-          })}`}
-        />
-      ) : (
-        <div className={styles.viewBody} style={{ whiteSpace: 'pre-wrap' }}>{email.body_text}</div>
-      )}
-
-      {downloadError && <p role="alert">{downloadError}</p>}
-      {/* Attachments Section */}
-      {email.attachments && email.attachments.length > 0 && (
-        <div className={styles.viewAttachments}>
-          <div className={styles.attachTitle}>
-            <Paperclip size={14} /> Attachments ({email.attachments.length})
-          </div>
-          <div className={styles.attachGrid}>
-            {email.attachments.map(att => (
-              <button type="button"
-                key={att.id}
-                onClick={() => downloadAttachment(att)}
-                className={styles.viewAttachCard}
-                title={`Download ${att.file_name}`}
-              >
-                <div className={styles.attachIcon}><FileText size={18} /></div>
-                <div className={styles.attachMeta}>
-                  <div className={styles.attachName}>{att.file_name}</div>
-                  <div className={styles.attachSize}>{(att.file_size / 1024).toFixed(1)} KB</div>
-                </div>
-                <span className={styles.attachDownloadBtn}><ExternalLink size={14} /></span></button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Quick Reply */}
-      {!isOutgoing && (
-        <div className={styles.quickReplyContainer}>
-          <button className={styles.quickReplyBtn} onClick={() => onReply(email)}>
-            <Reply size={16} /> Reply
-          </button>
-          <button className={styles.quickReplyBtn} onClick={() => onReplyAll(email)}>
-            <ReplyAll size={16} /> Reply All
-          </button>
-          <button className={styles.quickReplyBtn} onClick={() => onForward(email)}>
-            <Forward size={16} /> Forward
-          </button>
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   MAIN EMAIL CLIENT
-═══════════════════════════════════════════════════ */
-const AVATAR_COLORS = [
-  '#e0e7ff', '#fce7f3', '#fef3c7', '#d1fae5',
-  '#dbeafe', '#ede9fe', '#cffafe', '#fee2e2'
-];
-
-const getAvatarColor = (name) => {
-  if (!name) return AVATAR_COLORS[0];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-};
-
-const stripHtml = (html) => {
-  if (!html) return '';
-  const template = document.createElement('template');
-  template.innerHTML = html;
-  return template.content.textContent || "";
-};
 
 export default function EmailClient() {
   const [accounts, setAccounts] = useState([]);
@@ -926,9 +31,7 @@ export default function EmailClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilter, setShowFilter] = useState(false);
-  const [filters, setFilters] = useState({
-    readStatus: '', starred: '', hasAttachment: '', sortBy: 'newest'
-  });
+  const [filters, setFilters] = useState(defaultFilters);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [configured, setConfigured] = useState(false);
@@ -1024,20 +127,24 @@ export default function EmailClient() {
   }, [activeAccountId, folder]);
 
   // Apply search + filters locally on the current folder set
+  const q = searchQuery.trim().toLowerCase();
   const filteredEmails = (Array.isArray(emails) ? emails : []).filter(e => {
-    const q = searchQuery.toLowerCase();
     const matchSearch = !q || [e.sender, e.recipient, e.subject, e.body_text].some(v => (v || '').toLowerCase().includes(q));
     const matchRead = !filters.readStatus || (filters.readStatus === 'unread' ? !e.is_read : e.is_read);
     const matchStar = !filters.starred || (filters.starred === 'yes' ? e.is_starred : !e.is_starred);
-    return matchSearch && matchRead && matchStar;
-  });
+    const hasAttachments = Boolean(e.attachments?.length);
+    const matchAttachment = !filters.hasAttachment || (filters.hasAttachment === 'yes') === hasAttachments;
+    return matchSearch && matchRead && matchStar && matchAttachment;
+  }).sort((first, second) => compareMessages(first, second, filters.sortBy));
 
   const totalPages = Math.ceil(filteredEmails.length / PAGE_SIZE);
   const paginatedEmails = filteredEmails.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const hasActiveFilters = Object.entries(filters).some(([k, v]) => k !== 'sortBy' && v !== '');
+  const hasActiveFilters = Object.entries(filters).some(([k, v]) => v !== defaultFilters[k]);
 
-  const clearFilters = () => setFilters({ readStatus: '', starred: '', hasAttachment: '', sortBy: 'newest' });
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, filters]);
+
+  const clearFilters = () => setFilters(defaultFilters);
 
   // Folders definition
   const FOLDERS = [
@@ -1424,10 +531,10 @@ export default function EmailClient() {
                 Compose
               </Button>
 
-              <nav className={styles.folderNav}>
+              <nav className={styles.folderNav} aria-label="Mail folders">
                 {FOLDERS.map(f => (
                   <button
-                    key={f.key}
+                    key={f.key} aria-current={folder === f.key ? 'page' : undefined}
                     className={`${styles.folderItem} ${folder === f.key ? styles.folderActive : ''}`}
                     onClick={() => { setFolder(f.key); setSelectedEmail(null); setCurrentPage(1); }}
                   >
@@ -1483,14 +590,14 @@ export default function EmailClient() {
                     onChange={e => setSearchQuery(e.target.value)}
                   />
                   {searchQuery && (
-                    <button className={styles.searchClear} onClick={() => setSearchQuery('')}>
+                    <button className={styles.searchClear} aria-label="Clear mail search" onClick={() => setSearchQuery('')}>
                       <X size={12} />
                     </button>
                   )}
                 </div>
                 <button
                   className={`${styles.toolbarIconBtn} ${showFilter ? styles.toolbarIconBtnActive : ''}`}
-                  title="Deep Filter"
+                  title="Filters" aria-label="Filter messages" aria-expanded={showFilter}
                   onClick={() => setShowFilter(v => !v)}
                 >
                   <Filter size={14} />
@@ -1556,10 +663,10 @@ export default function EmailClient() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -6 }}
                           transition={{ delay: idx * 0.03 }}
-                          onClick={() => handleOpenEmail(email)}
+
                         >
                           <div className={styles.emailAvatar} style={{ background: getAvatarColor(displayName) }}>{avatarLetter}</div>
-                          <div className={styles.emailItemContent}>
+                          <button type="button" className={styles.emailItemContent} onClick={() => handleOpenEmail(email)}>
                             <div className={styles.emailItemTop}>
                               <span className={styles.emailItemSender}>{displayName}</span>
                               <span className={styles.emailItemTime}>{timeStr}</span>
@@ -1568,10 +675,10 @@ export default function EmailClient() {
                             <div className={styles.emailItemPreview}>
                               {stripHtml(email.body_text || email.body_html).slice(0, 100)}
                             </div>
-                          </div>
+                          </button>
                           <div className={styles.emailItemSide}>
                             {folder !== 'trash' && (
-                              <button className={`${styles.starBtn} ${email.is_starred ? styles.starActive : ''}`} onClick={e => toggleStar(email.id, e)}>
+                              <button type="button" aria-label={email.is_starred ? 'Unstar message' : 'Star message'} aria-pressed={email.is_starred} className={`${styles.starBtn} ${email.is_starred ? styles.starActive : ''}`} onClick={e => toggleStar(email.id, e)}>
                                 <Star size={13} fill={email.is_starred ? "currentColor" : "none"} />
                               </button>
                             )}
@@ -1666,4 +773,3 @@ export default function EmailClient() {
     </motion.div>
   );
 }
-

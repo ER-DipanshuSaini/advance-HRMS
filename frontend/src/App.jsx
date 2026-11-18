@@ -1,11 +1,7 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
-// Layouts & Auth
+import { BrowserRouter as Router, Link, Navigate, Route, Routes, useOutletContext } from 'react-router-dom';
 import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Auth/Login';
-
-// Core Views
 import DashboardOverview from './pages/Dashboard/DashboardOverview';
 import RoleManagement from './pages/Roles/RoleManagement';
 import OrgStructure from './pages/Organization/OrgStructure';
@@ -14,39 +10,47 @@ import Profile from './pages/Profile/Profile';
 import MyCalendar from './pages/MyCalendar/MyCalendar';
 import RecruitmentDashboard from './pages/Recruitment/RecruitmentDashboard';
 import RecruitmentDetails from './pages/Recruitment/RecruitmentDetails';
+import PageState from './components/common/PageState';
+import { getToken, hasPermission, readUser } from './session';
+import { navigation } from './navigation';
 
 const EmailClient = lazy(() => import('./pages/Email/EmailClient'));
+const routes = {
+  '/roles': RoleManagement, '/org': OrgStructure, '/employees': EmployeeDirectory,
+  '/profile': Profile, '/my-calendar': MyCalendar, '/email': EmailClient, '/recruitment': RecruitmentDashboard,
+};
 
-function PrivateRoute() {
-  const isAuth = localStorage.getItem('hireflow_auth') === 'true';
-  return isAuth ? <DashboardLayout /> : <Navigate to="/login" replace />;
+function PrivateLayout() {
+  return getToken() && readUser() ? <DashboardLayout /> : <Navigate to="/login" replace />;
+}
+
+function ProtectedPage({ access, children }) {
+  const user = useOutletContext();
+  return hasPermission(user, access) ? children :
+    <PageState title="You do not have access to this page"><Link to="/">Back to dashboard</Link></PageState>;
 }
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Route */}
         <Route path="/login" element={<Login />} />
-
-        {/* Protected Dashboard Routes */}
-        <Route path="/" element={<PrivateRoute />}>
+        <Route path="/" element={<PrivateLayout />}>
           <Route index element={<DashboardOverview />} />
-          <Route path="roles" element={<RoleManagement />} />
-          <Route path="org" element={<OrgStructure />} />
-          <Route path="employees" element={<EmployeeDirectory />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="my-calendar" element={<MyCalendar />} />
-          <Route path="email" element={<Suspense fallback={<p role="status">Loading email…</p>}><EmailClient /></Suspense>} />
-          <Route path="recruitment" element={<RecruitmentDashboard />} />
-          <Route path="recruitment/pipeline/:id" element={<RecruitmentDetails />} />
-          
-          {/* Fallback route */}
-          <Route path="*" element={<div style={{ padding: '2rem' }}>Page Not Found or Module Removed.</div>} />
+          {navigation.filter(item => routes[item.href]).map(({ href, permission }) => {
+            const Page = routes[href];
+            return <Route key={href} path={href.slice(1)} element={
+              <ProtectedPage access={permission}>
+                <Suspense fallback={<PageState title="Loading page..." />}><Page /></Suspense>
+              </ProtectedPage>
+            } />;
+          })}
+          <Route path="recruitment/pipeline/:id" element={
+            <ProtectedPage access="recruitment:view"><RecruitmentDetails /></ProtectedPage>
+          } />
+          <Route path="*" element={<PageState title="Page not found"><Link to="/">Back to dashboard</Link></PageState>} />
         </Route>
       </Routes>
     </Router>
   );
 }
-
-// EOF

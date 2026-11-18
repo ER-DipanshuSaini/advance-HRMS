@@ -1,3 +1,4 @@
+import { saveSession } from '../../session';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -25,10 +26,8 @@ export default function Login() {
       });
 
       if (data) {
-        localStorage.setItem('hireflow_auth', 'true');
-        localStorage.setItem('hireflow_token', data.access_token);
-        localStorage.setItem('hireflow_user', JSON.stringify(data.user));
-        navigate('/');
+        saveSession(data);
+        navigate('/', { replace: true });
       }
     } catch (err) {
       // API error handled by hook
@@ -62,8 +61,8 @@ export default function Login() {
           <h1>Empower your workforce with modern IAM.</h1>
           
           <div className={styles.heroPoints}>
-            {heroPoints.map((point, i) => (
-              <div key={i} className={styles.pointItem}>
+            {heroPoints.map(point => (
+              <div key={point.title} className={styles.pointItem}>
                 <div className={styles.pointIcon}>{point.icon}</div>
                 <div className={styles.pointText}>
                   <h4>{point.title}</h4>
@@ -86,15 +85,15 @@ export default function Login() {
             <p>Welcome back! Please enter your details.</p>
           </div>
 
-          <form onSubmit={handleLogin} className={styles.form}>
+          <form onSubmit={handleLogin} className={styles.form} aria-busy={loading}>
             {error && (
-              <div className={styles.errorMessage}>
+              <div className={styles.errorMessage} role="alert">
                 <AlertCircle size={18} /> {error}
               </div>
             )}
 
             <Input 
-              label="Company Email"
+              label="Work email" autoComplete="username"
               type="email"
               placeholder="name@company.com"
               value={email}
@@ -104,37 +103,26 @@ export default function Login() {
             />
 
             <Input 
-              label="Password"
+              label="Password" autoComplete="current-password"
               type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               icon={<Lock size={16} />}
               suffix={
-                <div onClick={() => setShowPassword(!showPassword)} style={{ cursor: 'pointer', display: 'flex' }}>
-                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </div>
+                <button type="button" className={styles.passwordToggle} aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowPassword(value => !value)}>
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               }
               required
             />
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: '#64748b' }}>
-                 <input type="checkbox" style={{ accentColor: 'var(--primary)', cursor: 'pointer' }} /> Remember me
-              </label>
-              <button type="button" style={{ 
-                background: 'none', border: 'none', padding: 0, 
-                fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary)', 
-                cursor: 'pointer' 
-              }}>Forgot password?</button>
-            </div>
 
             <Button 
               type="submit" 
               loading={loading} 
               style={{ width: '100%', height: '52px', fontSize: '1rem', marginTop: '0.5rem' }}
             >
-              Access Dashboard
+              Sign in
             </Button>
           </form>
         </div>

@@ -1,203 +1,120 @@
-import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import {
-  BarChart3, Users, ShieldCheck, LogOut, ChevronLeft,
-  ChevronRight, Building2, UserCircle, Menu, X, Clock, CalendarDays, Mail, Briefcase
-} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, LogOut, Menu, ShieldCheck, X } from 'lucide-react';
+import { clearSession, displayName, hasPermission, readUser } from '../session';
+import { navigation, navigationGroups } from '../navigation';
+import { resolveMediaUrl } from '../api/apiClient';
 import styles from './DashboardLayout.module.css';
 
 export default function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState({ first_name: 'Guest', last_name: '', role: 'Unknown', permissions: [] });
+  const [imageFailed, setImageFailed] = useState(false);
+  const [user, setUser] = useState(readUser);
+  const menuButton = useRef(null);
+  const closeButton = useRef(null);
   const navigate = useNavigate();
-  const location = useLocation();
+  const { pathname } = useLocation();
+  const name = displayName(user);
+  const image = resolveMediaUrl(user?.profile?.profile_picture);
+  const page = navigation.find(({ href }) => pathname === href || pathname.startsWith(href + '/'));
 
-  const displayName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Guest';
+  const avatar = image && !imageFailed ?
+    <img src={image} alt="" className={styles.avatarImage} onError={() => setImageFailed(true)} /> :
+    name.charAt(0).toUpperCase();
 
   useEffect(() => {
-    const loadUser = () => {
-      const storedUser = localStorage.getItem('hireflow_user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      } else {
-        navigate('/login');
-      }
+    const update = () => {
+      setUser(readUser());
+      setImageFailed(false);
     };
+    window.addEventListener('hireflow_user_updated', update);
+    return () => window.removeEventListener('hireflow_user_updated', update);
+  }, []);
 
-    loadUser(); // Load immediately on mount
+  function closeMenu() {
+    setMobileOpen(false);
+    menuButton.current?.focus();
+  }
 
-    // Listen for custom dispatch events to dynamically sync components
-    window.addEventListener('hireflow_user_updated', loadUser);
-    return () => window.removeEventListener('hireflow_user_updated', loadUser);
-  }, [navigate]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('hireflow_auth');
-    localStorage.removeItem('hireflow_user');
-    localStorage.removeItem('hireflow_token');
-    navigate('/login');
-  };
-
-  const hasPerm = (permCode) => {
-    const perms = user.permissions || [];
-    return Boolean(user.is_superuser || perms.includes(permCode));
-  };
-
-  // Dynamic breadcrumb logic
-  const getPageTitle = () => {
-    const path = location.pathname;
-    if (path === '/') return 'Dashboard';
-    if (path === '/org') return 'Organization Structure';
-    if (path === '/employees') return 'Employee Directory';
-    if (path === '/roles') return 'Security & Permissions';
-    if (path === '/profile') return 'My Profile';
-    if (path === '/my-calendar') return 'My Calendar';
-    if (path === '/email') return 'Mail';
-    if (path.startsWith('/recruitment')) return 'Recruitments';
-    return 'HireFlow';
-  };
-
-  const menuGroups = [
-    {
-      title: "OVERVIEW",
-      links: [
-        { to: "/", icon: <BarChart3 size={18} />, label: "Dashboard", id: 'dash' }
-      ]
-    },
-    {
-      title: "ORGANIZATION",
-      links: [
-        { to: "/org", icon: <Building2 size={18} />, label: "Org Structure", perm: 'depts:view' },
-        { to: "/employees", icon: <Users size={18} />, label: "Employee Directory", perm: 'users:view' }
-      ]
-    },
-    {
-      title: "RECRUITMENT",
-      links: [
-        { to: "/recruitment", icon: <Briefcase size={18} />, label: "Recruitments", perm: 'recruitment:view', id: 'recruit' }
-      ]
-    },
-    {
-      title: "SYSTEM",
-      links: [
-        { to: "/roles", icon: <ShieldCheck size={18} />, label: "Roles & Perms", perm: 'roles:view' }
-      ]
-    },
-    {
-      title: "PERSONAL",
-      links: [
-        { to: "/email", icon: <Mail size={18} />, label: "Mail", id: 'email' },
-        { to: "/my-calendar", icon: <CalendarDays size={18} />, label: "My Calendar", id: 'att' },
-        { to: "/profile", icon: <UserCircle size={18} />, label: "My Profile", perm: 'profile:view' }
-      ]
-    }
-  ];
+  useEffect(() => {
+    if (mobileOpen) closeButton.current?.focus();
+  }, [mobileOpen]);
 
   return (
-    <div className={styles.layoutContainer}>
-      {/* Mobile Overlay */}
-      {mobileOpen && (
-        <div className={styles.sidebarOverlay} onClick={() => setMobileOpen(false)} />
-      )}
-
-      <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''} ${mobileOpen ? styles.sidebarMobileOpen : ''}`}>
+    <div className={styles.layoutContainer} onKeyDown={event => {
+      if (mobileOpen && event.key === 'Escape') closeMenu();
+    }}>
+      <a className={styles.skipLink} href="#main-content">Skip to content</a>
+      {mobileOpen && <div className={styles.sidebarOverlay} onClick={closeMenu} aria-hidden="true" />}
+      <aside id="primary-navigation" className={[
+        styles.sidebar, collapsed && styles.sidebarCollapsed, mobileOpen && styles.sidebarMobileOpen,
+      ].filter(Boolean).join(' ')}>
         <div className={styles.sidebarHeader}>
-          <div className={styles.brandBox}>
-            <div className={styles.logoMark}><ShieldCheck size={16} color="white" /></div>
-            {!collapsed && <span className={styles.brandName}>HireFlow V2</span>}
-          </div>
-          <button className={styles.collapseBtn} onClick={() => setCollapsed(!collapsed)}>
+          <NavLink to="/" className={styles.brandBox} aria-label="HireFlow home" onClick={() => setMobileOpen(false)}>
+            <span className={styles.logoMark}><ShieldCheck size={19} aria-hidden="true" /></span>
+            <span className={styles.brandName}>HireFlow V2</span>
+          </NavLink>
+          <button type="button" className={styles.collapseBtn} onClick={() => setCollapsed(value => !value)}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
             {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
-          <button className={styles.closeMobileBtn} onClick={() => setMobileOpen(false)}>
-            <X size={18} />
+          <button type="button" ref={closeButton} className={styles.closeMobileBtn} onClick={closeMenu} aria-label="Close navigation">
+            <X size={20} />
           </button>
         </div>
-
-        <nav className={styles.navMenu}>
-          {menuGroups.map((group, idx) => {
-            const visibleLinks = group.links.filter(link => !link.perm || hasPerm(link.perm));
-            if (visibleLinks.length === 0) return null;
-
-            return (
-              <div key={idx} className={styles.navGroup}>
-                {!collapsed && <h4 className={styles.groupTitle}>{group.title}</h4>}
-                {visibleLinks.map((link, j) => (
-                  <NavLink
-                    key={j}
-                    to={link.to}
-                    end={link.to === '/'}
-                    className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    <span className={styles.navIcon}>{link.icon}</span>
-                    {!collapsed && <span className={styles.navLabel}>{link.label}</span>}
+        <nav className={styles.navMenu} aria-label="Main navigation">
+          {navigationGroups.map(({ label, links }) => {
+            const visible = links.filter(item => hasPermission(user, item.permission));
+            return visible.length > 0 && (
+              <div className={styles.navGroup} key={label}>
+                <h2 className={styles.groupTitle}>{label}</h2>
+                {visible.map(({ href, label: linkLabel, Icon }) => (
+                  <NavLink key={href} to={href} end={href === '/'} aria-label={linkLabel}
+                    title={collapsed ? linkLabel : undefined}
+                    className={({ isActive }) => [styles.navItem, isActive && styles.navItemActive].filter(Boolean).join(' ')}
+                    onClick={() => setMobileOpen(false)}>
+                    <span className={styles.navIcon}><Icon size={18} aria-hidden="true" /></span>
+                    <span className={styles.navLabel}>{linkLabel}</span>
                   </NavLink>
                 ))}
               </div>
             );
           })}
         </nav>
-
         <div className={styles.sidebarFooter}>
           <div className={styles.userInfoBox}>
-            <div className={styles.userAvatar}>
-              {user.profile?.profile_picture ? (
-                <img
-                  src={user.profile.profile_picture.startsWith('http') ? user.profile.profile_picture : `http://localhost:8000${user.profile.profile_picture}`}
-                  alt={displayName}
-                  className={styles.avatarImage}
-                />
-              ) : (
-                displayName.charAt(0)
-              )}
+            <span className={styles.userAvatar} aria-hidden="true">
+              {avatar}
+            </span>
+            <div className={styles.userDetails}>
+              <span className={styles.userName}>{name}</span>
+              {user?.role_name && <span className={styles.userRole}>{user.role_name}</span>}
             </div>
-            {!collapsed && (
-              <div className={styles.userDetails}>
-                <span className={styles.userName}>{displayName}</span>
-                <span className={styles.userRole}>{user.role_name}</span>
-              </div>
-            )}
           </div>
-          <button className={styles.logoutBtn} onClick={handleLogout} title="Sign Out">
-            <LogOut size={16} /> {!collapsed && <span>Sign Out</span>}
+          <button type="button" className={styles.logoutBtn} aria-label="Sign out" onClick={() => {
+            clearSession();
+            navigate('/login', { replace: true });
+          }}>
+            <LogOut size={17} aria-hidden="true" /><span className={styles.navLabel}>Sign out</span>
           </button>
         </div>
       </aside>
-
-      <main className={styles.mainContent}>
+      <main id="main-content" tabIndex={-1} className={styles.mainContent}>
         <header className={styles.topBar}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-            <button className={styles.mobileMenuBtn} onClick={() => setMobileOpen(true)}>
-              <Menu size={20} color="#1e293b" />
+          <div className={styles.topBarStart}>
+            <button type="button" ref={menuButton} className={styles.mobileMenuBtn} onClick={() => setMobileOpen(true)}
+              aria-label="Open navigation" aria-controls="primary-navigation" aria-expanded={mobileOpen}>
+              <Menu size={20} />
             </button>
             <div className={styles.pageIndicator}>
-              <span style={{ color: '#94a3b8' }}>HireFlow / </span><span className={styles.activePage}>{getPageTitle()}</span>
+              <span>HireFlow / </span><span className={styles.activePage}>{page?.label || 'HireFlow'}</span>
             </div>
           </div>
-          <div className={styles.topActions}>
-            <div className={styles.statusBadge}>System Online</div>
-            <div className={styles.userCircle}>
-              {user.profile?.profile_picture ? (
-                <img
-                  src={user.profile.profile_picture.startsWith('http') ? user.profile.profile_picture : `http://localhost:8000${user.profile.profile_picture}`}
-                  alt={displayName}
-                  className={styles.avatarImage}
-                />
-              ) : (
-                displayName.charAt(0)
-              )}
-            </div>
-          </div>
+          <div className={styles.userCircle} aria-hidden="true">{avatar}</div>
         </header>
-
-        <div className={styles.pageContainer}>
-          <Outlet />
-        </div>
+        <div className={styles.pageContainer}><Outlet context={user} /></div>
       </main>
     </div>
   );
 }
-
-// EOF

@@ -1188,3 +1188,15 @@
 .dateCell { font-weight: 800; color: #0f172a; }
 .timeCell { font-weight: 600; color: #475569; }
 .hoursCell { font-weight: 800; color: #0f62fe; }
+
+button.calCell {
+  appearance: none;
+  border-width: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+}
+@media (max-width: 768px) {
+  .mainLayout { grid-template-columns: minmax(0, 1fr); }
+  .calendarWrap { overflow-x: auto; }
+}

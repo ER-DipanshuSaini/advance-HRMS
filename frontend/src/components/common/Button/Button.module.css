@@ -73,3 +73,6 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+.ghost { background: transparent; color: var(--text-primary); }
+.ghost:hover:not(:disabled) { background: var(--surface-hover); }

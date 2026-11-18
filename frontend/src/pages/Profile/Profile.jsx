@@ -1,3 +1,7 @@
+import { useOutletContext } from 'react-router-dom';
+import { hasPermission } from '../../session';
+import PageState from '../../components/common/PageState';
+import { resolveMediaUrl } from '../../api/apiClient';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Mail, Phone, MapPin, Building, Briefcase,
@@ -14,9 +18,9 @@ import { useModal } from '../../hooks/useModal';
 import styles from './Profile.module.css';
 
 export default function Profile() {
-  const sessionUser = JSON.parse(localStorage.getItem('hireflow_user') || '{}');
+  const sessionUser = useOutletContext();
 
-  const { loading: dataLoading, request: fetchData } = useApi();
+  const { error: profileError, request: fetchData } = useApi();
   const { loading: updateLoading, request: updateData } = useApi();
 
   const contactModal = useModal();
@@ -41,10 +45,7 @@ export default function Profile() {
     email: ''
   });
 
-  const hasPerm = (permCode) => {
-    const perms = sessionUser.permissions || [];
-    return perms.includes(permCode) || sessionUser.role === 'SuperAdmin' || sessionUser.role_name === 'SuperAdmin';
-  };
+  const hasPerm = code => hasPermission(sessionUser, code);
 
   const loadProfile = async () => {
     if (!sessionUser.id) return;
@@ -166,14 +167,16 @@ export default function Profile() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  if (!profile && dataLoading) {
-    return <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading profile data...</div>;
+  if (!profile) {
+    return profileError ?
+      <PageState title="Profile could not be loaded" tone="error" action={{ label: 'Retry', run: loadProfile }}>{profileError}</PageState> :
+      <PageState title="Loading profile..." />;
   }
 
   const p = profile || {};
   const rp = p.profile || {};
   const isSelf = sessionUser.id === p.id;
-  const canEdit = isSelf || sessionUser.role === 'SuperAdmin';
+  const canEdit = isSelf && hasPerm('profile:update_basic');
   
   // Logical Fallback for Name
   const displayName = p.first_name || p.last_name 
@@ -182,7 +185,7 @@ export default function Profile() {
 
   const formatJoinDate = (dString) => {
     if (!dString) return 'Pending...';
-    return new Date(dString).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+    return new Date(dString + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
   };
 
   const fullAddress = [rp.street, rp.city, rp.state, rp.zip_code].filter(Boolean).join(', ');
@@ -194,7 +197,7 @@ export default function Profile() {
           <div className={styles.avatarLarge}>
             {rp.profile_picture ? (
               <img 
-                src={rp.profile_picture.startsWith('http') ? rp.profile_picture : `http://localhost:8000${rp.profile_picture}`} 
+                src={resolveMediaUrl(rp.profile_picture)}
                 alt="Profile" 
                 className={styles.avatarImage} 
               />

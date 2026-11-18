@@ -25,13 +25,13 @@ export default function CalendarHeader({
             />
             <button 
               className={`${styles.toggleBtn} ${viewMode === 'calendar' ? styles.toggleActive : ''}`} 
-              onClick={() => setViewMode('calendar')}
+              onClick={() => setViewMode('calendar')} aria-pressed={viewMode === 'calendar'}
             >
               <CalendarDays size={12}/> Calendar
             </button>
             <button 
               className={`${styles.toggleBtn} ${viewMode === 'list' ? styles.toggleActive : ''}`} 
-              onClick={() => setViewMode('list')}
+              onClick={() => setViewMode('list')} aria-pressed={viewMode === 'list'}
             >
               <ListIcon size={12}/> List
             </button>
@@ -48,7 +48,7 @@ export default function CalendarHeader({
           Today
         </button>
         <div className={styles.monthNav}>
-          <button className={styles.navBtn} onClick={() => changeMonth(-1)}>
+          <button className={styles.navBtn} onClick={() => changeMonth(-1)} aria-label="Previous month">
             <ChevronLeft size={14}/>
           </button>
           <div className={styles.monthDisplay}>
@@ -63,7 +63,7 @@ export default function CalendarHeader({
           </div>
           <button 
             className={styles.navBtn} 
-            onClick={() => changeMonth(1)} 
+            onClick={() => changeMonth(1)} aria-label="Next month"
             disabled={isThisMonth}
           >
             <ChevronRight size={14}/>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import styles from './Toast.module.css';
 
@@ -17,10 +17,10 @@ export default function Toast({ message, type = 'success', onClose, duration = 3
   };
 
   return (
-    <div className={`${styles.toast} ${styles[type]}`}>
+    <div role={type === 'error' ? 'alert' : 'status'} className={`${styles.toast} ${styles[type]}`}>
       <div className={styles.icon}>{icons[type]}</div>
       <div className={styles.message}>{message}</div>
-      <button className={styles.closeBtn} onClick={onClose}><X size={14}/></button>
+      <button type="button" aria-label="Dismiss notification" className={styles.closeBtn} onClick={onClose}><X size={14}/></button>
       <div className={styles.progress} style={{ animationDuration: `${duration}ms` }}></div>
     </div>
   );

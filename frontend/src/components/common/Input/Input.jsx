@@ -1,34 +1,24 @@
-import React from 'react';
+import { useId } from 'react';
 import styles from './Input.module.css';
 
-/**
- * Standard Atomic Input Component
- * @param {string} label - Optional label for the input
- * @param {string} error - Optional error message
- * @param {React.ReactNode} icon - Optional icon to display before input
- * @param {React.ReactNode} suffix - Optional icon/button to display after input
- */
-export default function Input({ 
-  label, 
-  error, 
-  icon, 
-  suffix,
-  className = '', 
-  containerClass = '', 
-  ...props 
-}) {
+export default function Input({ label, error, icon, suffix, className = '', containerClass = '',
+  id, 'aria-describedby': description, ...props }) {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  const errorId = error ? inputId + '-error' : undefined;
+
   return (
     <div className={`${styles.inputGroup} ${containerClass}`}>
-      {label && <label className={styles.label}>{label}</label>}
-      <div className={`${styles.inputWrapper} ${error ? styles.inputError : ''}`}>
-        {icon && <span className={styles.icon}>{icon}</span>}
-        <input 
-          className={`${styles.input} ${icon ? styles.hasIcon : ''} ${suffix ? styles.hasSuffix : ''} ${className}`} 
-          {...props} 
-        />
+      {label && <label htmlFor={inputId} className={styles.label}>{label}</label>}
+      <div className={styles.inputWrapper}>
+        {icon && <span className={styles.icon} aria-hidden="true">{icon}</span>}
+        <input {...props} id={inputId}
+          className={[styles.input, icon && styles.hasIcon, suffix && styles.hasSuffix, className].filter(Boolean).join(' ')}
+          aria-invalid={error ? true : props['aria-invalid']}
+          aria-describedby={[description, errorId].filter(Boolean).join(' ') || undefined} />
         {suffix && <span className={styles.suffix}>{suffix}</span>}
       </div>
-      {error && <span className={styles.errorText}>{error}</span>}
+      {error && <span id={errorId} className={styles.errorText}>{error}</span>}
     </div>
   );
 }

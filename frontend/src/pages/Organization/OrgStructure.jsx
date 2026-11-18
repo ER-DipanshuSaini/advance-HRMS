@@ -1,3 +1,5 @@
+import { useOutletContext } from 'react-router-dom';
+import { hasPermission } from '../../session';
 import { useState, useEffect, useMemo } from 'react';
 import { Building2, Plus, Edit2, ChevronRight, User, Users as UsersIcon, ShieldCheck, Hash } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
@@ -23,15 +25,13 @@ export default function OrgStructure() {
   const [editingItem, setEditingItem] = useState(null); // { type: 'dept'|'desig', data: obj }
   const [toast, setToast] = useState(null);
 
-  const storedUser = JSON.parse(localStorage.getItem('hireflow_user') || '{}');
-  const userPerms = storedUser.permissions || [];
-  const isSuper = storedUser.role_name === 'SuperAdmin' || storedUser.role === 'SuperAdmin';
-  const hasPerm = (code) => isSuper || userPerms.includes(code);
+  const user = useOutletContext();
+  const hasPerm = code => hasPermission(user, code);
 
   const loadData = async () => {
     try {
       const data = await fetchDepts('/org/departments/');
-      await fetchUsers('/iam/employees/');
+
 
       setActiveDept(prev => {
         if (!prev && data?.length > 0) return data[0];
@@ -45,6 +45,11 @@ export default function OrgStructure() {
   };
 
   useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    if (hasPermission(user, 'users:view')) {
+      fetchUsers('/iam/employees/').catch(() => {});
+    }
+  }, [fetchUsers, user]);
 
   // Helper to generate unique codes (e.g. SD01)
   const generateCode = (name, type = 'dept') => {
@@ -146,8 +151,7 @@ export default function OrgStructure() {
     <div className="flex flex-col gap-6 animate-fade-in">
       <header className={styles.pageHeader}>
         <div>
-          <h1 className={styles.headerTitle}>Organization Workspace</h1>
-          <p className={styles.headerDesc}>Define departments, establish HODs, and manage hierarchical designations.</p>
+          <h1 className={styles.headerTitle}>Organization</h1>
         </div>
         {hasPerm('depts:add') && (
           <Button icon={<Plus size={16} />} onClick={() => { setFormData({ name: '', code: '', hod: '' }); deptModal.open(); }}>

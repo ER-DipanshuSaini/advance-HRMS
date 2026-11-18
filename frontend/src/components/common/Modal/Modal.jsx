@@ -1,52 +1,37 @@
-import React, { useEffect } from 'react';
-import ReactDOM from 'react-dom';
+import { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import styles from './Modal.module.css';
 
-export default function Modal({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
-  footer, 
-  size = 'md' 
-}) {
+export default function Modal({ isOpen, onClose, title, children, footer, size = 'md' }) {
+  const ref = useRef(null);
+  const titleId = useId();
+
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
+    const dialog = ref.current;
+    if (!isOpen || !dialog) return;
+    const opener = document.activeElement;
+    dialog.showModal();
+    return () => {
+      dialog.close();
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Portal renders directly into document.body, bypassing layout containers
-  return ReactDOM.createPortal(
-    <div className={styles.overlay} onClick={onClose}>
-      <div 
-        className={`${styles.modal} ${styles[size]}`} 
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className={styles.header}>
-          <h3 className={styles.title}>{title}</h3>
-          <button className={styles.closeBtn} onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-        
-        <div className={styles.body}>
-          {children}
-        </div>
-
-        {footer && (
-          <div className={styles.footer}>
-            {footer}
-          </div>
-        )}
-      </div>
-    </div>,
+  return createPortal(
+    <dialog ref={ref} className={[styles.modal, styles[size]].join(' ')} aria-labelledby={titleId}
+      onCancel={event => { event.preventDefault(); onClose(); }}>
+      <header className={styles.header}>
+        <h2 id={titleId}>{title}</h2>
+        <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close dialog">
+          <X size={19} aria-hidden="true" />
+        </button>
+      </header>
+      <div className={styles.body}>{children}</div>
+      {footer && <footer className={styles.footer}>{footer}</footer>}
+    </dialog>,
     document.body
   );
 }

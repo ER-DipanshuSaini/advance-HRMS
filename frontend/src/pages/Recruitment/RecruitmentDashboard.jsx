@@ -1,242 +1,162 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Building2, Plus, Search, Filter, Briefcase, 
-  TrendingUp, Users, Clock, AlertCircle, MapPin, ExternalLink
-} from 'lucide-react';
-import Button from '../../components/common/Button/Button';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { AlertCircle, Briefcase, ChevronDown, Filter, MapPin, Plus, Search, Users } from 'lucide-react';
 import Badge from '../../components/common/Badge/Badge';
-import CreateRecruitmentWizard from './CreateRecruitmentWizard';
-import { useApi } from '../../hooks/useApi';
-import { recruitmentService } from '../../api/recruitmentService';
+import Button from '../../components/common/Button/Button';
 import Card from '../../components/common/Card/Card';
+import { recruitmentService } from '../../api/recruitmentService';
+import { hasPermission } from '../../session';
+import CreateRecruitmentWizard from './CreateRecruitmentWizard';
 import styles from './RecruitmentDashboard.module.css';
 
+const statuses = { ACTIVE: 'Active', DRAFT: 'Draft', CLOSED: 'Closed' };
+const modes = { ON_SITE: 'On-site', HYBRID: 'Hybrid', REMOTE: 'Remote' };
+const columns = ['S.No', 'Job ID', 'Role Name', 'Department', 'Experience', 'Openings', 'Location', 'Budget', 'Process Stage', 'Opening Date'];
+const widths = { 'S.No': '60px', 'Job ID': '120px', 'Role Name': '250px', Openings: '100px', 'Process Stage': '180px' };
+const pipelinePath = id => '/recruitment/pipeline/' + encodeURIComponent(id);
+
+function Metrics({ jobs }) {
+  const active = jobs.filter(job => job.status === 'ACTIVE');
+  const metrics = [
+    { label: 'Active Openings', value: active.reduce((count, job) => count + job.headcount, 0), Icon: Briefcase, background: '#eff6ff', color: '#2563eb' },
+    { label: 'Active Pipelines', value: active.length, Icon: Users, background: '#ecfdf5', color: '#059669' },
+    { label: 'Total Jobs', value: jobs.length, Icon: Briefcase, background: '#fffbeb', color: '#d97706' },
+  ];
+  return (
+    <div className={styles.metricsStrip}>
+      {metrics.map(({ label, value, Icon, background, color }) => (
+        <div className={styles.metricItem} key={label}>
+          <div className={styles.metricIcon} style={{ background, color }}><Icon size={18} aria-hidden="true" /></div>
+          <div className={styles.metricContent}>
+            <span className={styles.metricLabel}>{label}</span>
+            <span className={styles.metricValue}>{value}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TableState({ title, children, action, error = false, loading = false }) {
+  return (
+    <tr><td colSpan={columns.length}>
+      <div className={styles.emptyState} role={error ? 'alert' : 'status'}>
+        {loading ? <div className={styles.spinner} aria-hidden="true" /> :
+          <AlertCircle size={40} aria-hidden="true" className={styles.emptyIcon} />}
+        <h3>{title}</h3>
+        {children && <p>{children}</p>}
+        {action && <Button variant="outline" onClick={action.run}>{action.label}</Button>}
+      </div>
+    </td></tr>
+  );
+}
+
 export default function RecruitmentDashboard() {
-  const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('All');
-  const [showWizard, setShowWizard] = useState(false);
-  const [records, setRecords] = useState([]);
-  const { loading, request } = useApi();
+  const user = useOutletContext();
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+  const [jobs, setJobs] = useState(null);
+  const [error, setError] = useState('');
 
-  const fetchRecruitments = async () => {
+  const load = useCallback(async () => {
+    setError('');
     try {
-      const data = await request(null, { 
-        call: () => recruitmentService.getPositions() 
-      });
-      
-      // Transform backend data to frontend structure
-      if (data && Array.isArray(data)) {
-        const transformed = data.map(r => ({
-          id: r.id,
-          jobId: r.job_id,
-          role: r.title,
-          department: r.department_name,
-          experience: r.experience_range,
-          headcount: r.headcount,
-          locationMode: r.location_mode.charAt(0).toUpperCase() + r.location_mode.slice(1).toLowerCase().replace('_', '-'),
-          location: r.location,
-          salaryBand: r.budget_range,
-          statusStage: r.current_process_stage,
-          internalStatus: r.status,
-          openingDate: r.opening_date
-        }));
-        setRecords(transformed);
-      }
-    } catch (err) {
-      console.error('Failed to fetch recruitments:', err);
+      setJobs(await recruitmentService.getPositions());
+    } catch (failure) {
+      setError(failure.message);
     }
-  };
-
-  useEffect(() => {
-    fetchRecruitments();
   }, []);
 
-  const filteredRecords = records.filter(r => {
-    const matchesSearch = r.role.toLowerCase().includes(search.toLowerCase()) || 
-                          r.jobId.toLowerCase().includes(search.toLowerCase()) ||
-                          r.department.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
-  });
+  useEffect(() => { load(); }, [load]);
 
-  const activeCount = records.filter(r => r.internalStatus === 'ACTIVE').length;
-  const totalCandidates = records.length; // Placeholder for total candidates across all jobs
-
-  const renderPipelineBar = (pl) => {
-    const total = (pl.new + pl.processing + pl.final) || 0; 
-    const wN = total ? (pl.new / total) * 100 : 0;
-    const wP = total ? (pl.processing / total) * 100 : 0;
-    const wF = total ? (pl.final / total) * 100 : 0;
-
-    return (
-      <div className={styles.pipelineWrap}>
-        <div className={styles.pipelineMetrics}>
-          <span>{total > 1 ? total : 0} DB</span>
-          <span style={{color: 'var(--primary)'}}>{pl.processing + pl.final} ACTIVE</span>
-        </div>
-        <div className={styles.pipelineBarSegmented}>
-          <div className={styles.segmentApplied} style={{ width: `${wN}%` }} title="New"/>
-          <div className={styles.segmentScreening} style={{ width: `${wP}%` }} title="In-Process"/>
-          <div className={styles.segmentOffer} style={{ width: `${wF}%` }} title="Final"/>
-        </div>
-      </div>
-    );
-  };
+  const query = search.trim().toLowerCase();
+  const visible = (jobs || []).filter(job =>
+    (!status || job.status === status) &&
+    [job.title, job.department_name, job.job_id, job.location].some(value => value?.toLowerCase().includes(query))
+  );
+  function clearFilters() {
+    setSearch('');
+    setStatus('');
+  }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      style={{ display: 'contents' }}
-    >
-      <div className={styles.pageHeader}>
-        <div className={styles.headerInfo}>
-          <h1 className={styles.headerTitle}>Recruitment Command Center</h1>
-          <p className={styles.headerDesc}>Strategic acquisition portal and automated hiring intelligence hub.</p>
-        </div>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowWizard(true)}>
-          New Recruitment
-        </Button>
-      </div>
-
-      <div className={styles.metricsStrip}>
-        <div className={styles.metricItem}>
-          <div className={styles.metricIcon} style={{ background: '#eff6ff' }}>
-            <Briefcase size={18} color="#2563eb" />
-          </div>
-          <div className={styles.metricContent}>
-            <span className={styles.metricLabel}>Total Capacity</span>
-            <span className={styles.metricValue}>{records.reduce((s,r) => s+r.headcount,0)}</span>
-          </div>
-        </div>
-        <div className={styles.metricDivider}></div>
-        <div className={styles.metricItem}>
-          <div className={styles.metricIcon} style={{ background: '#ecfdf5' }}>
-             <Users size={18} color="#10b981" />
-          </div>
-          <div className={styles.metricContent}>
-            <span className={styles.metricLabel}>Active Pipelines</span>
-            <span className={styles.metricValue} style={{ color: '#059669' }}>{activeCount}</span>
-          </div>
-        </div>
-        <div className={styles.metricDivider}></div>
-        <div className={styles.metricItem}>
-          <div className={styles.metricIcon} style={{ background: '#fffbeb' }}>
-            <ExternalLink size={16} color="#d97706" />
-          </div>
-          <div className={styles.metricContent}>
-            <span className={styles.metricLabel}>Candidate Flow</span>
-            <span className={styles.metricValue}>{totalCandidates}</span>
-          </div>
-        </div>
-      </div>
-
+    <>
+      <header className={styles.pageHeader}>
+        <h1 className={styles.headerTitle}>Recruitment Command Center</h1>
+        {hasPermission(user, 'recruitment:add') &&
+          <Button icon={<Plus size={16} />} onClick={() => setShowWizard(true)}>New Recruitment</Button>}
+      </header>
+      {jobs && <Metrics jobs={jobs} />}
       <Card noPadding shadow="sm" className={styles.mainContainer}>
         <div className={styles.toolbar}>
           <div className={styles.toolbarLeft}>
             <div className={styles.searchContainer}>
-              <Search size={18} className={styles.searchIcon} />
-              <input 
-                placeholder="Search by Job ID, Department, or Role..." 
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className={styles.mainSearch}
-              />
+              <Search size={18} className={styles.searchIcon} aria-hidden="true" />
+              <input className={styles.mainSearch} type="search" aria-label="Search jobs"
+                placeholder="Search by Job ID, Department, or Role..." value={search}
+                onChange={event => setSearch(event.target.value)} />
             </div>
           </div>
           <div className={styles.toolbarRight}>
-            <Button variant="outline" icon={<Filter size={15} />}>Advanced Filters</Button>
+            <Button variant="outline" icon={<Filter size={15} />} aria-controls="recruitment-filters"
+              aria-expanded={showFilters} onClick={() => setShowFilters(value => !value)}>
+              Advanced Filters <ChevronDown size={14} aria-hidden="true" />
+            </Button>
           </div>
         </div>
-
-        <div className={styles.tableResponsive}>
+        <div id="recruitment-filters" className={styles.filterBar} hidden={!showFilters}>
+          <label htmlFor="recruitment-status">Status</label>
+          <select id="recruitment-status" value={status} onChange={event => setStatus(event.target.value)}>
+            <option value="">All statuses</option>
+            {Object.entries(statuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          {(status || search) && <Button variant="ghost" onClick={clearFilters}>Reset Filters</Button>}
+        </div>
+        <div className={styles.tableResponsive} tabIndex={0} role="region" aria-label="Job openings">
           <table className={styles.saasTable}>
-            <thead>
-              <tr>
-                <th style={{ width: '60px' }}>S.No</th>
-                <th style={{ width: '120px' }}>Job ID</th>
-                <th style={{ width: '250px' }}>Role Name</th>
-                <th>Department</th>
-                <th>Experience</th>
-                <th style={{ width: '100px' }}>Openings</th>
-                <th>Location</th>
-                <th>Budget</th>
-                <th style={{ width: '180px' }}>Process Stage</th>
-                <th>Opening Date</th>
-              </tr>
-            </thead>
+            <thead><tr>{columns.map(label =>
+              <th key={label} scope="col" style={widths[label] ? { width: widths[label] } : undefined}>{label}</th>
+            )}</tr></thead>
             <tbody>
-              {loading && records.length === 0 ? (
-                <tr>
-                  <td colSpan="10">
-                    <div className={styles.emptyState}>
-                      <div className={styles.spinner} />
-                      <p>Loading recruitment pipelines...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredRecords.length > 0 ? (
-                filteredRecords.map((r, index) => (
-                  <tr 
-                    key={r.id} 
-                    onClick={() => navigate(`/recruitment/pipeline/${r.jobId}`)}
-                    className={styles.clickableRow}
-                  >
+              {error ? <TableState title="Jobs could not be loaded" error action={{ label: 'Retry', run: load }}>{error}</TableState> :
+                !jobs ? <TableState title="Loading recruitment pipelines..." loading /> :
+                !visible.length ? <TableState title={jobs.length ? 'No results match your criteria' : 'No recruitment pipelines yet'}
+                  action={jobs.length ? { label: 'Clear filters', run: clearFilters } : undefined}>
+                  {jobs.length ? 'Adjust your search or status filter.' : undefined}
+                </TableState> :
+                visible.map((job, index) => (
+                  <tr key={job.id} className={styles.clickableRow}
+                    onClick={event => { if (!event.target.closest('a')) navigate(pipelinePath(job.job_id)); }}>
                     <td className={styles.srNoCell}>{index + 1}</td>
-                    <td className={styles.jobIdCell}><span className={styles.jobIdBadge}>{r.jobId}</span></td>
-                    <td className={styles.roleNameCell}>{r.role}</td>
-                    <td>{r.department}</td>
-                    <td className={styles.expCell}>{r.experience}</td>
-                    <td className={styles.headcountCell}>{r.headcount} Slots</td>
-                    <td>
-                      <div className={styles.locationStack}>
-                        <span className={styles.locMode}>{r.locationMode}</span>
-                        <span className={styles.locCity}><MapPin size={10}/> {r.location}</span>
-                      </div>
-                    </td>
-                    <td className={styles.budgetCell}>{r.salaryBand}</td>
-                    <td>
-                      <Badge variant={
-                        r.statusStage === 'Hired' ? 'success' : 
-                        r.statusStage === 'Rejected' ? 'danger' : 
-                        r.statusStage === 'Sourcing' ? 'warning' : 'primary'
-                      }>
-                        {r.statusStage}
-                      </Badge>
-                    </td>
-                    <td>{r.openingDate}</td>
+                    <td><span className={styles.jobIdBadge}>{job.job_id}</span></td>
+                    <td className={styles.roleNameCell}><Link to={pipelinePath(job.job_id)}>{job.title}</Link></td>
+                    <td>{job.department_name || '—'}</td>
+                    <td className={styles.expCell}>{job.experience_range || '—'}</td>
+                    <td className={styles.headcountCell}>{job.headcount}</td>
+                    <td><div className={styles.locationStack}>
+                      <span className={styles.locMode}>{modes[job.location_mode]}</span>
+                      {job.location && <span className={styles.locCity}><MapPin size={10} aria-hidden="true" /> {job.location}</span>}
+                    </div></td>
+                    <td className={styles.budgetCell}>{job.budget_range || '—'}</td>
+                    <td><Badge variant={job.current_process_stage === 'Hired' ? 'success' :
+                      job.current_process_stage === 'Rejected' ? 'danger' :
+                      job.current_process_stage === 'Sourcing' ? 'warning' : 'primary'}>
+                      {job.current_process_stage}
+                    </Badge></td>
+                    <td>{job.opening_date || '—'}</td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="10">
-                    <div className={styles.emptyState}>
-                      <AlertCircle size={40} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
-                      <h3>No results match your criteria</h3>
-                      <p>Adjust your search filters to find specific recruitment pipelines.</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
+                ))}
             </tbody>
           </table>
         </div>
       </Card>
-
-      <AnimatePresence>
-        {showWizard && (
-          <CreateRecruitmentWizard 
-            onClose={() => setShowWizard(false)} 
-            onCreate={(newId) => {
-              setShowWizard(false);
-              navigate(`/recruitment/pipeline/${newId}`);
-            }}
-          />
-        )}
-      </AnimatePresence>
-    </motion.div>
+      {showWizard && <CreateRecruitmentWizard onClose={() => setShowWizard(false)} onCreate={id => {
+        setShowWizard(false);
+        navigate(pipelinePath(id));
+      }} />}
+    </>
   );
 }

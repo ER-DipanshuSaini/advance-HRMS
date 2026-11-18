@@ -1,3 +1,4 @@
+import { useOutletContext } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { Lock, Plus, ShieldCheck, Save, X, ChevronRight, Info } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
@@ -19,10 +20,7 @@ export default function RoleManagement() {
   const [newRoleName, setNewRoleName] = useState('');
   const [toast, setToast] = useState(null);
 
-  const storedUser = JSON.parse(localStorage.getItem('hireflow_user') || '{}');
-  const userPerms = storedUser.permissions || [];
-  const isSuper = storedUser.role_name === 'SuperAdmin' || storedUser.role === 'SuperAdmin';
-  const hasPerm = (code) => isSuper || userPerms.includes(code);
+  const isSuper = Boolean(useOutletContext()?.is_superuser);
 
   const loadData = async () => {
     try {
@@ -95,10 +93,9 @@ export default function RoleManagement() {
     <div className="flex flex-col gap-6">
       <header className={styles.pageHeader}>
         <div>
-          <h1 className={styles.headerTitle}>Security & Permissions</h1>
-          <p className={styles.headerDesc}>Define granular access control and define functional boundaries for departments and staff.</p>
+          <h1 className={styles.headerTitle}>Roles and permissions</h1>
         </div>
-        {hasPerm('roles:add') && (
+        {isSuper && (
           <Button icon={<Plus size={16} />} onClick={() => roleModal.open()}>Create Custom Role</Button>
         )}
       </header>
@@ -130,7 +127,7 @@ export default function RoleManagement() {
         {activeRole && (
           <Card
             title={`${activeRole.name} Permissions`}
-            extra={hasPerm('roles:add') ? (
+            extra={isSuper ? (
               <Button
                 loading={actionLoading}
                 onClick={handleSavePerms}
@@ -148,7 +145,7 @@ export default function RoleManagement() {
                     {perms.map(p => {
                       const isSelected = activeRole.permissions_list.some(ap => ap.id === p.id);
                       const isSuperAdminRole = activeRole.name === 'SuperAdmin';
-                      const canEdit = hasPerm('roles:add') && !isSuperAdminRole;
+                      const canEdit = isSuper && !isSuperAdminRole;
                       return (
                         <div
                           key={p.id}

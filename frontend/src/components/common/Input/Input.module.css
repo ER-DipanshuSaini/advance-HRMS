@@ -67,12 +67,12 @@
   color: var(--primary);
 }
 
-.inputError .input {
+.input[aria-invalid="true"] {
   border-color: #ef4444;
   background-color: #fef2f2;
 }
 
-.inputError .input:focus {
+.input[aria-invalid="true"]:focus {
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
 }
 
@@ -82,3 +82,5 @@
   font-weight: 500;
   margin-top: 0.125rem;
 }
+
+.input:focus-visible { outline: 2px solid var(--focus-color); outline-offset: 2px; }

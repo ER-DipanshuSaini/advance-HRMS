@@ -385,7 +385,7 @@ export default function MyCalendar() {
                 }
 
                 return (
-                  <motion.div
+                  <motion.button type="button"
                     key={cell.key}
                     whileHover={{ scale: 1.02, zIndex: 10 }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
@@ -398,18 +398,18 @@ export default function MyCalendar() {
                       }
                     }}
                   >
-                    <div className={styles.calDayNum}>{dayNum}</div>
-                    <div className={styles.calDetails}>
-                      {rec?.check_in_display && <div className={styles.calTime}>↗ {rec.check_in_display}</div>}
-                      {rec?.check_out_display && <div className={styles.calTime}>↙ {rec.check_out_display}</div>}
+                    <span className={styles.calDayNum}>{dayNum}</span>
+                    <span className={styles.calDetails}>
+                      {rec?.check_in_display && <span className={styles.calTime}>↗ {rec.check_in_display}</span>}
+                      {rec?.check_out_display && <span className={styles.calTime}>↙ {rec.check_out_display}</span>}
                       {holiday && (
-                        <div className={styles.calTime} style={{ color: '#0369a1', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <span className={styles.calTime} style={{ color: '#0369a1', display: 'flex', alignItems: 'center', gap: '3px' }}>
                           {IconComponent && <IconComponent size={10} />} {holiday.name}
-                        </div>
+                        </span>
                       )}
-                    </div>
-                    {tagLabel && <div className={`${styles.calStatusTag} ${tagClass}`}>{tagLabel}</div>}
-                  </motion.div>
+                    </span>
+                    {tagLabel && <span className={`${styles.calStatusTag} ${tagClass}`}>{tagLabel}</span>}
+                  </motion.button>
                 );
               })}
             </Fragment>
@@ -619,7 +619,7 @@ export default function MyCalendar() {
                       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
                     }) : 'Day Details'}`}
                 </h3>
-                <button className={styles.drawerClose} onClick={() => setDrawerType(null)}>
+                <button type="button" aria-label="Close calendar details" className={styles.drawerClose} onClick={() => setDrawerType(null)}>
                   <X size={16} />
                 </button>
               </div>

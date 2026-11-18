@@ -1,7 +1,9 @@
+import { clearSession, getToken } from '../session';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:8000/api/v1');
 
 export const apiClient = async (endpoint, { responseType, ...options } = {}) => {
-  const token = localStorage.getItem('hireflow_token');
+  const token = getToken();
   const isLoginEndpoint = endpoint.includes('/auth/login/');
   
   const isFormData = options.body instanceof FormData;
@@ -18,11 +20,9 @@ export const apiClient = async (endpoint, { responseType, ...options } = {}) => 
 
   // Handle Token Expiry (but skip for login attempts themselves)
   if (response.status === 401 && !isLoginEndpoint) {
-    localStorage.removeItem('hireflow_auth');
-    localStorage.removeItem('hireflow_token');
-    localStorage.removeItem('hireflow_user');
-    window.location.href = '/login';
-    return null;
+    clearSession();
+    window.location.assign('/login');
+    throw new Error('Your session expired. Sign in again.');
   }
 
   // Handle Errors
@@ -46,3 +46,14 @@ export const apiClient = async (endpoint, { responseType, ...options } = {}) => 
   // Return Data
   return await response.json();
 };
+
+export function resolveMediaUrl(path) {
+  if (!path) return '';
+  try {
+    const base = new URL(BASE_URL, window.location.origin);
+    const url = new URL(path, base.origin);
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+  } catch {
+    return '';
+  }
+}

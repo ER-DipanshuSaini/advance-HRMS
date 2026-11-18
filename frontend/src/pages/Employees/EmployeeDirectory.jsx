@@ -1,8 +1,12 @@
+import { useOutletContext } from 'react-router-dom';
+import { hasPermission } from '../../session';
+import PageState from '../../components/common/PageState';
+import { resolveMediaUrl } from '../../api/apiClient';
 import { useState, useEffect, useMemo } from 'react';
 import {
   Users, Plus, Mail, ShieldCheck, Building2, UserCircle,
   Search, Filter, CheckCircle2, Copy, ExternalLink, Calendar,
-  Phone, Hash, MoreVertical, UserPlus, Fingerprint, AlertCircle,
+  Phone, Hash, UserPlus, Fingerprint, AlertCircle,
   ChevronDown, X
 } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
@@ -16,7 +20,7 @@ import Toast from '../../components/common/Toast/Toast';
 import styles from './EmployeeDirectory.module.css';
 
 export default function EmployeeDirectory() {
-  const { loading: loadingEmployees, request: fetchEmployees } = useApi();
+  const { loading: loadingEmployees, error: employeesError, request: fetchEmployees } = useApi();
   const { loading: creating, request: createEmployee } = useApi();
   const { request: fetchMeta } = useApi();
 
@@ -58,10 +62,9 @@ export default function EmployeeDirectory() {
     return `${emp.first_name || ''} ${emp.last_name || ''}`.trim() || emp.email;
   };
 
-  const storedUser = JSON.parse(localStorage.getItem('hireflow_user') || '{}');
-  const userPerms = storedUser.permissions || [];
-  const isSuper = Boolean(storedUser.is_superuser);
-  const hasPerm = (code) => isSuper || userPerms.includes(code);
+  const user = useOutletContext();
+  const isSuper = Boolean(user?.is_superuser);
+  const hasPerm = code => hasPermission(user, code);
 
   const loadData = async (pageNum = 1) => {
     try {
@@ -144,11 +147,11 @@ export default function EmployeeDirectory() {
     });
   }, [employeesList, search, filters]);
 
-  const stats = useMemo(() => ({
-    total: employeesData?.count || employeesList.length,
-    active: employeesList.filter(e => e.status === 'ACTIVE').length,
-    exited: employeesList.filter(e => e.status === 'EXITED').length
-  }), [employeesData, employeesList]);
+  const stats = {
+    total: employeesData?.count ?? employeesList.length,
+    active: employeesList.filter(employee => employee.status === 'ACTIVE').length,
+    exited: employeesList.filter(employee => employee.status === 'EXITED').length,
+  };
 
   const copyToClipboard = (text, label) => {
     navigator.clipboard.writeText(text);
@@ -162,23 +165,22 @@ export default function EmployeeDirectory() {
       <div className={styles.pageHeader}>
         <div className={styles.headerInfo}>
           <h1 className={styles.headerTitle}>Employee Directory</h1>
-          <p className={styles.headerDesc}>Professional lifecycle management for the modern workforce.</p>
         </div>
         {hasPerm('users:add') && (
           <Button variant="primary" icon={<Plus size={16} />} onClick={() => { setCreatedEmp(null); employeeModal.open(); }}>
-            Onboard Employee
+            Add employee
           </Button>
         )}
       </div>
 
-      {/* Modern Stats Strip */}
+      {employeesData && (
       <div className={styles.metricsStrip}>
         <div className={styles.metricItem}>
           <div className={styles.metricIcon} style={{ background: '#eff6ff' }}>
             <Users size={18} color="#2563eb" />
           </div>
           <div className={styles.metricContent}>
-            <span className={styles.metricLabel}>Total Workforce</span>
+            <span className={styles.metricLabel}>Total Employees</span>
             <span className={styles.metricValue}>{stats.total}</span>
           </div>
         </div>
@@ -188,7 +190,7 @@ export default function EmployeeDirectory() {
             <div className={styles.statusPing}></div>
           </div>
           <div className={styles.metricContent}>
-            <span className={styles.metricLabel}>Active Identity</span>
+            <span className={styles.metricLabel}>Active on This Page</span>
             <span className={styles.metricValue} style={{ color: '#059669' }}>{stats.active}</span>
           </div>
         </div>
@@ -198,11 +200,12 @@ export default function EmployeeDirectory() {
             <ExternalLink size={16} color="#d97706" />
           </div>
           <div className={styles.metricContent}>
-            <span className={styles.metricLabel}>Archived / Exited</span>
+            <span className={styles.metricLabel}>Exited on This Page</span>
             <span className={styles.metricValue}>{stats.exited}</span>
           </div>
         </div>
       </div>
+      )}
 
       <Card noPadding shadow="sm" className={styles.mainContainer}>
         {/* Advanced Toolbar System */}
@@ -211,7 +214,7 @@ export default function EmployeeDirectory() {
             <div className={styles.searchContainer}>
               <Search size={16} className={styles.searchIcon} />
               <input
-                placeholder="Search by name, ID, or email..."
+                aria-label="Search employees on this page" placeholder="Search this page by name, ID or email"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className={styles.mainSearch}
@@ -219,10 +222,10 @@ export default function EmployeeDirectory() {
             </div>
             <button
               className={`${styles.filterToggle} ${showFilters ? styles.filterActive : ''}`}
-              onClick={() => setShowFilters(!showFilters)}
+              aria-expanded={showFilters} onClick={() => setShowFilters(value => !value)}
             >
               <Filter size={14} />
-              <span>Deep Filter</span>
+              <span>Filters</span>
               <ChevronDown size={14} className={showFilters ? styles.rotate180 : ''} />
             </button>
           </div>
@@ -234,7 +237,7 @@ export default function EmployeeDirectory() {
           )}
         </div>
 
-        {/* Collapsible Deep Filter Bar */}
+        {/* Collapsible Filters Bar */}
         {showFilters && (
           <div className={styles.deepFilterBar}>
             <div className={styles.filterGrid}>
@@ -266,22 +269,28 @@ export default function EmployeeDirectory() {
           </div>
         )}
 
-        <div className={styles.tableResponsive}>
+        <div className={styles.tableResponsive} role="region" aria-label="Employee directory table" tabIndex={0}>
           <table className={styles.saasTable}>
             <thead>
               <tr>
+
                 <th style={{ width: '60px' }}>S.No</th>
                 <th style={{ width: '130px' }}>Employee ID</th>
-                <th>Identity & Contact</th>
-                <th>Work Domain</th>
+                <th>Employee</th>
+                <th>Designation and department</th>
                 <th>Joining Date</th>
                 <th>Role</th>
                 <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+
               </tr>
             </thead>
             <tbody>
-              {filteredEmployees.length > 0 ? (
+              {employeesError ? (
+                <tr><td colSpan={7} className={styles.emptyState}><PageState title="Employees could not be loaded" tone="error"
+                  action={{ label: 'Retry', run: () => loadData(page) }}>{employeesError}</PageState></td></tr>
+              ) : loadingEmployees ? (
+                <tr><td colSpan={7} className={styles.emptyState}><PageState title="Loading employees..." /></td></tr>
+              ) : filteredEmployees.length > 0 ? (
                 filteredEmployees.map((emp, index) => (
                   <tr key={emp.id}>
                     <td className={styles.serialCell}>{index + 1}</td>
@@ -293,7 +302,7 @@ export default function EmployeeDirectory() {
                         <div className={styles.miniAvatar}>
                           {emp.profile?.profile_picture ? (
                             <img 
-                              src={emp.profile.profile_picture.startsWith('http') ? emp.profile.profile_picture : `http://localhost:8000${emp.profile.profile_picture}`} 
+                              src={resolveMediaUrl(emp.profile.profile_picture)}
                               alt={getEmpName(emp)} 
                               className={styles.avatarImage} 
                             />
@@ -328,17 +337,15 @@ export default function EmployeeDirectory() {
                     <td>
                       <Badge variant={emp.status === 'ACTIVE' ? 'success' : 'dark'}>{emp.status}</Badge>
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button className={styles.moreActions}><MoreVertical size={16} /></button>
-                    </td>
+
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className={styles.emptyState}>
+                  <td colSpan="7" className={styles.emptyState}>
                     <div className={styles.emptyContent}>
                       <div className={styles.emptyIcon}><AlertCircle size={40} /></div>
-                      <h3>No matching employees found</h3>
+                      <h3>No employees match these filters</h3>
                       <p>Adjust your filters or search query to find who you're looking for.</p>
                       <Button variant="outline" onClick={() => { setSearch(''); setFilters({ role: '', department: '', status: '' }); }}>Clear All Filters</Button>
                     </div>
@@ -507,7 +514,7 @@ export default function EmployeeDirectory() {
                 <div className={styles.empCardAvatar}>
                   {createdEmp.profile?.profile_picture ? (
                     <img 
-                      src={createdEmp.profile.profile_picture.startsWith('http') ? createdEmp.profile.profile_picture : `http://localhost:8000${createdEmp.profile.profile_picture}`} 
+                      src={resolveMediaUrl(createdEmp.profile.profile_picture)}
                       alt={getEmpName(createdEmp)} 
                       className={styles.avatarImage} 
                     />
