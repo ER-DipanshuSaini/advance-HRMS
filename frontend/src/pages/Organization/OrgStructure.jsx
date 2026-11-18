@@ -161,8 +161,8 @@ export default function OrgStructure() {
       <div className={styles.workspaceGrid}>
 
         {/* Department Sidebar */}
-        <Card title="Structural Units" noPadding>
-          <div className="flex flex-col">
+        <Card title="Structural Units">
+          <div className="flex flex-col gap-3">
             {(departments || []).map(dept => {
               const isActive = activeDept?.id === dept.id;
               return (

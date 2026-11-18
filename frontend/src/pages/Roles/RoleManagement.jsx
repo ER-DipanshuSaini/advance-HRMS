@@ -99,8 +99,8 @@ export default function RoleManagement() {
 
       <div className={styles.workspaceGrid}>
 
-        <Card title="Access Roles" noPadding>
-          <div className="flex flex-col">
+        <Card title="Access Roles">
+          <div className="flex flex-col gap-3">
             {roles.map(role => {
               const isActive = activeRole?.id === role.id;
               const isLocked = role.name === 'SuperAdmin';
