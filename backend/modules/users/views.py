@@ -61,7 +61,7 @@ class CustomUserPagination(PageNumberPagination):
     max_page_size = 50
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all().select_related('role', 'department', 'designation', 'profile')
+    queryset = User.objects.select_related('role', 'department', 'designation', 'profile').order_by('pk')
     pagination_class = CustomUserPagination
     permission_classes = [ActionPermission]
     action_permissions = {

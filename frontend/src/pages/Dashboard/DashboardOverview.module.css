@@ -1,5 +1,37 @@
-.links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: var(--space-md); }
-.cardContent { display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: .85rem; padding: var(--space-md); }
-.icon { display: grid; place-items: center; width: 40px; height: 40px; color: var(--primary); background: var(--primary-light); border-radius: var(--border-radius-md); }
-.description { display: block; margin-top: .25rem; color: var(--text-secondary); font-size: var(--text-sm); }
+.overviewGrid { display: grid; gap: var(--space-md); }
+.overviewGrid[data-wide='true'] { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+.shortcuts { display: grid; gap: var(--space-sm); min-width: 0; }
+.links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: var(--space-sm); }
+.cardContent { display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: .8rem; padding: var(--space-md); }
+.icon { display: grid; place-items: center; width: 38px; height: 38px; color: var(--primary); background: var(--primary-light); border-radius: var(--border-radius-md); }
+.description, .tableLink small, .holidayName small { display: block; margin-top: .25rem; color: var(--text-secondary); font-size: var(--text-sm); }
 .arrow { color: var(--text-secondary); margin-top: .2rem; }
+.sectionHeading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; }
+.sectionHeading a, .inlineLink { display: inline-flex; align-items: center; gap: .4rem; color: var(--primary); font-weight: 650; text-decoration: none; }
+.sectionHeading a:hover, .inlineLink:hover, .tableLink:hover { text-decoration: underline; }
+.tableLink { display: inline-block; color: var(--text-primary); font-weight: 700; text-decoration: none; }
+.chartIntro { display: flex; align-items: baseline; flex-wrap: wrap; gap: .55rem; margin-bottom: 1rem; color: var(--text-secondary); }
+.chartIntro strong { color: var(--text-primary); font-size: 1.8rem; line-height: 1; letter-spacing: -.04em; }
+.breakdown, .holidayList { display: grid; gap: .7rem; list-style: none; }
+.breakdown li { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr) 2rem; align-items: center; gap: .65rem; color: var(--text-secondary); }
+.breakdown strong { text-align: right; color: var(--text-primary); }
+.track { height: .625rem; border-radius: var(--border-radius-full); background: var(--bg-color); overflow: hidden; }
+.track span { height: 100%; display: block; border-radius: inherit; background: var(--primary); }
+.breakdown [data-tone='draft'] .track span { background: var(--warning); }
+.breakdown [data-tone='closed'] .track span { background: var(--text-muted); }
+.holiday { display: grid; width: 100%; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .75rem; border: var(--border-subtle); border-radius: var(--border-radius-md); background: var(--surface-color); padding: .55rem .65rem; color: var(--text-primary); text-align: left; font: inherit; }
+.holiday:hover { background: var(--surface-hover); }
+.holidayDate { display: grid; place-items: center; min-width: 42px; padding: .35rem; border-radius: var(--border-radius-md); background: var(--primary-light); color: var(--primary); }
+.holidayDate strong { font-size: 1.1rem; line-height: 1.1; }
+.holidayDate span { font-size: .7rem; }
+.holidayDetail { display: grid; justify-items: start; gap: .65rem; }
+.detailGrid { display: grid; grid-template-columns: 1fr auto; gap: .5rem 1.5rem; }
+.detailGrid dd { margin: 0; text-align: right; font-weight: 650; }
+.period { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .4rem; }
+.attendanceChart { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(32px, 1fr); gap: .4rem; overflow-x: auto; padding: 3px; }
+.chartDay { display: grid; gap: .35rem; min-width: 0; text-align: center; color: var(--text-secondary); }
+.chartDay small { font-size: .65rem; }
+.dayBar { display: flex; align-items: end; justify-content: center; height: 84px; border: 0; border-radius: var(--border-radius-sm); background: var(--surface-hover); }
+.dayBar span { width: min(65%, 26px); min-height: 3px; border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0; background: var(--primary); }
+button.dayBar:hover { background: var(--primary-light); }
+@media (max-width: 900px) { .overviewGrid[data-wide='true'] { grid-template-columns: minmax(0, 1fr); } }
