@@ -1,6 +1,6 @@
 import { clearSession, getToken } from '../session';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api/v1' : 'http://localhost:8000/api/v1');
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 export const apiClient = async (endpoint, { responseType, ...options } = {}) => {
   const token = getToken();
