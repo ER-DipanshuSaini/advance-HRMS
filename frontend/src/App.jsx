@@ -41,7 +41,7 @@ export default function App() {
             const Page = routes[href];
             return <Route key={href} path={href.slice(1)} element={
               <ProtectedPage access={permission}>
-                <Suspense fallback={<PageState title="Loading page..." />}><Page /></Suspense>
+                <Suspense fallback={<PageState tone="loading" title="Loading page..." />}><Page /></Suspense>
               </ProtectedPage>
             } />;
           })}

@@ -1,3 +1,4 @@
+import PageState from '../../components/common/PageState';
 import PageLayout from '../../components/common/PageLayout';
 import Select from '../../components/common/Select/Select';
 import PageHeader from '../../components/common/PageHeader/PageHeader';
@@ -163,7 +164,7 @@ export default function OrgStructure() {
         {/* Department Sidebar */}
         <Card title="Structural Units">
           <div className="flex flex-col gap-3">
-            {(departments || []).map(dept => {
+            {deptsLoading && !departments ? <PageState tone="loading" title="Loading departments..." /> : (departments || []).map(dept => {
               const isActive = activeDept?.id === dept.id;
               return (
                 <div

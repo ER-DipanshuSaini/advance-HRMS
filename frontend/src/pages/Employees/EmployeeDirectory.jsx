@@ -217,11 +217,11 @@ export default function EmployeeDirectory() {
     <PageLayout>
       <PageHeader title="Employee Directory" actions={canAddEmployee &&
         <Button icon={<Plus size={16} />} onClick={openEmployeeForm}>Add employee</Button>} />
-      {employeesData && <MetricStrip metrics={[
+      <MetricStrip loading={!employeesData && !employeesError} error={!employeesData && employeesError} metrics={[
         { label: 'Total Employees', value: stats.total, Icon: Users },
         { label: 'Active on This Page', value: stats.active, Icon: UserCircle, tone: 'success' },
         { label: 'Exited on This Page', value: stats.exited, Icon: ExternalLink, tone: 'warning' },
-      ]} />}
+      ]} />
       <DataTable label="Employees" columns={columns} rows={filteredEmployees} rowKey={employee => employee.id}
         loading={loadingEmployees || (!employeesData && !employeesError)} error={employeesError} onRetry={() => loadData(page)}
         empty={employeesData?.count > 0 && (search.trim() || Object.values(filters).some(Boolean)) ? {

@@ -1,7 +1,8 @@
+import Loader from '../../components/common/Loader/Loader';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import DOMPurify from 'dompurify';
-import { Send, Trash2, Pencil, Reply, Paperclip, X, Bold, Italic, Underline, Link2, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Strikethrough, RotateCcw, RotateCw, MinusSquare, Maximize2, Loader2 } from 'lucide-react';
+import { Send, Trash2, Pencil, Reply, Paperclip, X, Bold, Italic, Underline, Link2, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Strikethrough, RotateCcw, RotateCw, MinusSquare, Maximize2 } from 'lucide-react';
 import Button from '../../components/common/Button/Button';
 import styles from './EmailClient.module.css';
 
@@ -343,7 +344,7 @@ export default function ComposeWindow({ onClose, onSend, onSaveDraft, onToast, a
               <div className={styles.accountDotSmall} style={{ background: '#64748b' }} />
               <span>{activeAccount?.email_address}</span>
               {lastSaved && <span className={styles.draftStatus}> • Saved at {lastSaved}</span>}
-              {isSaving && <Loader2 size={12} className={styles.spinning} />}
+              {isSaving && <Loader size="sm" label="Saving draft" />}
             </div>
             <div className={styles.composeActions}>
               <input ref={fileRef} type="file" multiple hidden onChange={handleAttach} />

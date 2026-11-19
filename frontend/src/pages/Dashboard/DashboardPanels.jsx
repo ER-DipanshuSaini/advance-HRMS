@@ -18,7 +18,7 @@ const hours = record => Number(record?.work_hours) || 0;
 
 function ChartState({ resource, loading, empty, children }) {
   if (resource.error) return <PageState tone="error" title="Chart could not be loaded">{resource.error}</PageState>;
-  if (!resource.data) return <PageState title={loading} />;
+  if (!resource.data) return <PageState tone="loading" title={loading} />;
   if (!resource.data.length) return <PageState title={empty} />;
   return children;
 }

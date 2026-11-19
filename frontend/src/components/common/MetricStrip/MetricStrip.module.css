@@ -8,3 +8,28 @@
 .success { background: var(--success-light); color: var(--success); }
 .warning { background: var(--warning-light); color: var(--warning); }
 @media (max-width: 768px) { .metric + .metric { border: 0; padding-left: 0; } }
+
+.value {
+  display: flex;
+  align-items: center;
+  min-block-size: 2rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.reveal { animation: reveal .28s ease-out both; }
+
+.unavailable {
+  color: var(--text-secondary);
+  font-size: .75rem;
+  font-weight: 600;
+}
+
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(.2rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { animation: none; }
+}

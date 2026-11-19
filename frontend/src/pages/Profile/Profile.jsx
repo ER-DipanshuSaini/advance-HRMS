@@ -171,7 +171,7 @@ export default function Profile() {
   if (!profile) {
     return profileError ?
       <PageState title="Profile could not be loaded" tone="error" action={{ label: 'Retry', run: loadProfile }}>{profileError}</PageState> :
-      <PageState title="Loading profile..." />;
+      <PageState tone="loading" title="Loading profile..." />;
   }
 
   const p = profile || {};

@@ -1,3 +1,5 @@
+import PageState from '../../components/common/PageState';
+import Loader from '../../components/common/Loader/Loader';
 import Modal from '../../components/common/Modal/Modal';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -36,6 +38,9 @@ export default function EmailClient() {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [configured, setConfigured] = useState(false);
+  const [accountsLoading, setAccountsLoading] = useState(true);
+  const [accountsError, setAccountsError] = useState(null);
+  const [messageRequests, setMessageRequests] = useState(0);
   const [toast, setToast] = useState(null);
   const [confirmRemove, setConfirmRemove] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -77,17 +82,23 @@ export default function EmailClient() {
       }
     } catch (err) {
       console.error("Failed to fetch accounts", err);
+      setAccountsError(err.message);
+    } finally {
+      setAccountsLoading(false);
     }
   };
 
   const fetchMessages = async () => {
     if (!activeAccountId) return;
+    setMessageRequests(count => count + 1);
     try {
       const data = await apiClient(`${API_BASE}/messages/?account_id=${activeAccountId}&folder=${folder}`);
       const results = Array.isArray(data) ? data : (data?.results || []);
       setEmails(results);
     } catch (err) {
       console.error("Failed to fetch messages", err);
+    } finally {
+      setMessageRequests(count => count - 1);
     }
   };
 
@@ -445,7 +456,11 @@ export default function EmailClient() {
         </p>
       </Modal>
 
-      {configured ? (
+      {accountsLoading ? (
+        <PageState tone="loading" title="Loading mailboxes..." />
+      ) : accountsError && !configured ? (
+        <PageState tone="error" title="Could not load mailboxes" action={{ label: 'Retry', run: () => { setAccountsLoading(true); fetchAccounts(); } }} />
+      ) : configured ? (
         <div className={styles.emailShell}>
           <aside className={styles.emailSidebar}>
             <AccountSwitcher
@@ -514,7 +529,7 @@ export default function EmailClient() {
                     </span>
                     {activeAccount.sync_status === 'syncing' && (
                       <span className={styles.backgroundSyncBadge}>
-                        <RefreshCw size={10} className={styles.spinning} />
+                        <Loader size="sm" />
                         Syncing Historical Emails...
                       </span>
                     )}
@@ -551,7 +566,7 @@ export default function EmailClient() {
                   disabled={isSyncing || activeAccount?.sync_status === 'syncing'}
                   style={{ opacity: (isSyncing || activeAccount?.sync_status === 'syncing') ? 0.5 : 1 }}
                 >
-                  <RefreshCw size={14} className={(isSyncing || activeAccount?.sync_status === 'syncing') ? styles.spinning : ''} />
+                  {isSyncing || activeAccount?.sync_status === 'syncing' ? <Loader size="sm" /> : <RefreshCw size={14} />}
                 </button>
               </div>
             </div>
@@ -570,11 +585,13 @@ export default function EmailClient() {
             <div className={styles.mailContent}>
               <div className={styles.emailList}>
                 <AnimatePresence mode="popLayout">
-                  {filteredEmails.length === 0 ? (
+                  {messageRequests > 0 && !filteredEmails.length && !isSyncing ? (
+                    <PageState tone="loading" title="Loading messages..." />
+                  ) : filteredEmails.length === 0 ? (
                     <motion.div key="empty" className={styles.emptyState} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                       <div className={styles.emptyIcon}>
                         {isSyncing ? (
-                          <RefreshCw size={32} className={styles.syncSpin} />
+                          <Loader size="lg" />
                         ) : (
                           <Inbox size={32} />
                         )}

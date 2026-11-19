@@ -52,7 +52,7 @@ function HolidaysPanel({ resource, onSelect }) {
   return (
     <Card title="Upcoming holidays">
       {resource.error ? <PageState title="Holidays could not be loaded" tone="error">{resource.error}</PageState> :
-        !resource.data ? <PageState title="Loading holidays..." /> :
+        !resource.data ? <PageState tone="loading" title="Loading holidays..." /> :
         !resource.data.length ? <PageState title="No upcoming holidays" /> :
           <ul className={styles.holidayList}>
             {resource.data.map(holiday => (
@@ -116,12 +116,19 @@ export default function DashboardOverview() {
 
   const jobs = resources.jobs?.data;
   const attendance = resources.attendance?.data;
+  const metricStatus = resource => ({
+    loading: !resource || Boolean(resource.loading),
+    error: resource?.error,
+  });
   const metrics = [
-    ...(canViewEmployees ? [{ label: 'Employees', value: resources.employees?.data?.count ?? '—', Icon: Users }] : []),
-    ...(canViewDepartments ? [{ label: 'Departments', value: resources.departments?.data?.length ?? '—', Icon: Building2 }] : []),
-    ...(canViewJobs ? [{ label: 'Active jobs', value: jobs?.filter(job => job.status === 'ACTIVE').length ?? '—', Icon: Briefcase, tone: 'success' }] : []),
-    { label: 'Upcoming holidays', value: resources.holidays?.data ? (resources.holidays.data.length === 5 ? '5+' : resources.holidays.data.length) : '—',
-      Icon: CalendarDays, tone: 'warning' },
+    ...(canViewEmployees ? [{ label: 'Employees', value: resources.employees?.data?.count, Icon: Users,
+      ...metricStatus(resources.employees) }] : []),
+    ...(canViewDepartments ? [{ label: 'Departments', value: resources.departments?.data?.length, Icon: Building2,
+      ...metricStatus(resources.departments) }] : []),
+    ...(canViewJobs ? [{ label: 'Active jobs', value: jobs?.filter(job => job.status === 'ACTIVE').length,
+      Icon: Briefcase, tone: 'success', ...metricStatus(resources.jobs) }] : []),
+    { label: 'Upcoming holidays', value: resources.holidays?.data?.length === 5 ? '5+' : resources.holidays?.data?.length,
+      Icon: CalendarDays, tone: 'warning', ...metricStatus(resources.holidays) },
   ];
   const isRefreshing = Object.values(resources).some(resource => resource.loading);
   const directoryError = resources.employees?.error || resources.departments?.error;

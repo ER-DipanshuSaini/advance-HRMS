@@ -31,8 +31,7 @@
   background: var(--primary-light);
   color: var(--primary);
 }
+.state[data-tone='loading'] .stateIcon { inline-size: 5rem; block-size: 2rem; }
 .state[data-tone='error'] .stateIcon { background: var(--danger-light); color: var(--danger); }
-.state[data-tone='loading'] .stateIcon svg { animation: spin .8s linear infinite; }
 .pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem; }
 .paginationActions { display: flex; gap: .5rem; }
-@keyframes spin { to { transform: rotate(360deg); } }

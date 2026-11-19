@@ -1,3 +1,4 @@
+import PageState from '../../components/common/PageState';
 import Select from '../../components/common/Select/Select';
 import Input from '../../components/common/Input/Input';
 import Card from '../../components/common/Card/Card';
@@ -84,6 +85,7 @@ export default function MyCalendar() {
   const canApplyLeave = userPermsList.includes('leaves:apply_own') || userPermsList.includes('leaves:add_all') || sessionUser.is_superuser;
 
   const { loading: todayLoading, request: fetchToday } = useApi();
+  const { loading: balanceLoading, error: balanceError, request: fetchBalance } = useApi();
   const { loading: actionLoading, request: doAction } = useApi();
   const { loading: histLoading, request: fetchHistory } = useApi();
   const { loading: holidayLoading, request: fetchHolidays } = useApi();
@@ -155,7 +157,7 @@ export default function MyCalendar() {
 
   const loadLeaves = async () => {
     try {
-      const b = await doAction('/attendance/leaves/balance/', { method: 'GET' });
+      const b = await fetchBalance('/attendance/leaves/balance/');
       setLeaveBalance(b);
 
       const l = await doAction('/attendance/leaves/', { method: 'GET' });
@@ -463,9 +465,7 @@ export default function MyCalendar() {
                 <>
                   <div className={styles.calendarWrap}>
                     {histLoading || holidayLoading ? (
-                      <div className={styles.skeletonContainer}>
-                        {[...Array(35)].map((_, i) => <div key={i} className={styles.skeletonCell} />)}
-                      </div>
+                      <PageState tone="loading" title="Loading calendar..." />
                     ) : renderCalendar()}
                   </div>
                   <div className={styles.legend}>
@@ -487,7 +487,7 @@ export default function MyCalendar() {
               ) : (
                 <div className={styles.calendarWrap}>
                   {histLoading || holidayLoading ? (
-                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>Loading records...</div>
+                    <PageState tone="loading" title="Loading records..." />
                   ) : (() => {
                     // Build unified list: attendance records + holidays + leaves for this month
                     const monthStr = `${viewYear}-${pad(viewMonth)}`;
@@ -598,6 +598,8 @@ export default function MyCalendar() {
         <StatsSection
           summary={summary}
           leaveBalance={leaveBalance}
+          balanceLoading={balanceLoading}
+          balanceError={balanceError}
           upcomingHolidays={upcomingHolidays}
           canApplyLeave={canApplyLeave}
           onApplyLeave={() => setDrawerType('leave')}

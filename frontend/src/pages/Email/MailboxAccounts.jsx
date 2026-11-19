@@ -1,9 +1,10 @@
+import PageState from '../../components/common/PageState';
 import { usePopover } from '../../hooks/usePopover';
 import Modal from '../../components/common/Modal/Modal';
 import Input from '../../components/common/Input/Input';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Trash2, ChevronDown, X, Check, AlertCircle, Plus, ShieldCheck } from 'lucide-react';
+import { Mail, Trash2, ChevronDown, X, Check, AlertCircle, Plus } from 'lucide-react';
 import { apiClient } from '../../api/apiClient';
 import Button from '../../components/common/Button/Button';
 import styles from './EmailClient.module.css';
@@ -75,19 +76,7 @@ export function AccountConfigModal({ onClose, onSave, onToast, editAccount = nul
       </>}>
       <p className={styles.configSub}>Step {step} of 2 · {step === 1 ? 'Choose provider' : 'Enter credentials'}</p>
           {isSyncingInitial ? (
-            <div className={styles.syncLoadingState}>
-              <div className={styles.syncLoadingIcon}>
-                <div className={styles.pulseRing} />
-                <ShieldCheck size={40} className={styles.successIcon} />
-              </div>
-              <h4 className={styles.syncLoadingTitle}>Validation Success!</h4>
-              <p className={styles.syncLoadingMsg}>
-                Saving your mailbox settings...
-              </p>
-              <div className={styles.inlineLoader}>
-                <div className={styles.inlineLoaderBar} />
-              </div>
-            </div>
+            <PageState tone="loading" title="Saving mailbox settings..." />
           ) : step === 1 ? (
             <div className={styles.providerGrid}>
               {PROVIDERS.map(p => {

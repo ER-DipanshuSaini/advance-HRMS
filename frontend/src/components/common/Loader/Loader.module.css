@@ -1,0 +1,38 @@
+.sm { --width: 2.125rem; }
+.md { --width: 4.25rem; }
+.lg { --width: 6.25rem; }
+
+.sm, .md, .lg {
+  display: inline-grid;
+  flex: 0 0 auto;
+  inline-size: var(--width);
+  vertical-align: middle;
+}
+
+.liquid {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  fill: currentColor;
+}
+
+.drop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: drift 1.9s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  0% { transform: translateX(-33px); }
+  28% { transform: translateX(-19px) scale(1.14, .92); }
+  50% { transform: translateX(0); }
+  72% { transform: translateX(19px) scale(1.14, .92); }
+  100% { transform: translateX(33px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop {
+    animation: none;
+    transform: translateX(29px);
+  }
+}

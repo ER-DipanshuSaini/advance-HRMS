@@ -1,3 +1,4 @@
+import PageState from '../common/PageState';
 import Card from '../common/Card/Card';
 import Button from '../common/Button/Button';
 import React from 'react';
@@ -13,7 +14,9 @@ const CAT_COLORS = {
 
 export default function StatsSection({ 
   summary, 
-  leaveBalance, 
+  leaveBalance,
+  balanceLoading,
+  balanceError,
   upcomingHolidays, 
   canApplyLeave,
   onApplyLeave 
@@ -40,8 +43,13 @@ export default function StatsSection({
           )}
         </div>
 
+        {balanceError && !leaveBalance ? (
+          <PageState tone="error" title="Could not load leave balance">{balanceError}</PageState>
+        ) : balanceLoading && !leaveBalance ? (
+          <PageState tone="loading" title="Loading leave balance..." />
+        ) : (
         <div className={styles.leaveGrid}>
-          {leaveBalance ? Object.entries(leaveBalance).map(([code, lb]) => {
+          {Object.entries(leaveBalance || {}).map(([code, lb]) => {
             const pct = lb.accrued > 0 ? Math.min((lb.balance / lb.accrued) * 100, 100) : 0;
             const color = code === 'CL' ? '#10b981' : code === 'PL' ? '#0f62fe' : '#f59e0b';
             const name  = code === 'CL' ? 'Casual'   : code === 'PL' ? 'Privilege' : 'Sick';
@@ -76,14 +84,9 @@ export default function StatsSection({
                 </div>
               </div>
             );
-          }) : (
-            <>
-              <div className={styles.skeletonCell} style={{ height: '64px', borderRadius: '14px' }} />
-              <div className={styles.skeletonCell} style={{ height: '64px', borderRadius: '14px' }} />
-              <div className={styles.skeletonCell} style={{ height: '64px', borderRadius: '14px' }} />
-            </>
-          )}
+          })}
         </div>
+        )}
       </Card>
 
       {/* ── UPCOMING HOLIDAYS ───────────── */}

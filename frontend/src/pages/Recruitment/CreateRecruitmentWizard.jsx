@@ -1,3 +1,4 @@
+import PageState from '../../components/common/PageState';
 import Select from '../../components/common/Select/Select';
 import { useEffect, useId, useState } from 'react';
 import Button from '../../components/common/Button/Button';
@@ -68,7 +69,7 @@ export default function CreateRecruitmentWizard({ onClose, onCreate }) {
         <Button type="submit" form={formId} loading={busy} disabled={!departments?.length}>Create job</Button>
       </>}>
       {error && <p className={styles.message} role="alert">{error}</p>}
-      {!departments && !error && <p role="status" className={styles.message}>Loading departments...</p>}
+      {!departments && !error && <PageState tone="loading" title="Loading departments..." />}
       {departments?.length === 0 && <p role="status" className={styles.message}>Create a department before adding a job.</p>}
       <form id={formId} className={styles.form} onSubmit={submit} aria-busy={busy}>
         <Input name="title" label="Job title" required maxLength={255} />

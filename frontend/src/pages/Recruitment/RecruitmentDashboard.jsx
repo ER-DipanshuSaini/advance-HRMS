@@ -75,11 +75,11 @@ export default function RecruitmentDashboard() {
     <PageLayout>
       <PageHeader title="Recruitment Command Center" actions={canCreate &&
         <Button icon={<Plus size={16} />} onClick={createJob}>New Recruitment</Button>} />
-      {jobs && <MetricStrip metrics={[
+      <MetricStrip loading={!jobs && !error} error={error} metrics={[
         { label: 'Active Openings', value: active.reduce((count, job) => count + job.headcount, 0), Icon: Briefcase },
         { label: 'Active Pipelines', value: active.length, Icon: Users, tone: 'success' },
-        { label: 'Total Jobs', value: jobs.length, Icon: Briefcase, tone: 'warning' },
-      ]} />}
+        { label: 'Total Jobs', value: jobs?.length, Icon: Briefcase, tone: 'warning' },
+      ]} />
       <DataTable label="Job openings" columns={columns} rows={visible} rowKey={job => job.id}
         onRowClick={job => navigate(pipelinePath(job.job_id))} loading={!jobs && !error} error={error} onRetry={load}
         empty={jobs?.length ? {

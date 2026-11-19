@@ -72,7 +72,7 @@ export default function RecruitmentDetails() {
       <Link className={styles.back} to="/recruitment"><ArrowLeft size={16} aria-hidden="true" /> Recruitment</Link>
       {error && <PageState title="Recruitment request failed" tone="error"
         action={{ label: 'Reload job', run: () => refresh() }}>{error}</PageState>}
-      {!data && !error && <PageState title="Loading job..." />}
+      {!data && !error && <PageState tone="loading" title="Loading job..." />}
       {data && <>
         <Card as="header">
           <h1>{data.job.title}</h1>

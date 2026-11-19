@@ -1,3 +1,4 @@
+import PageState from '../../components/common/PageState';
 import Input from '../../components/common/Input/Input';
 import Select from '../../components/common/Select/Select';
 import Button from '../../components/common/Button/Button';
@@ -54,7 +55,7 @@ export default function ApplicationWorkflow({ endpoint, applicationId, canEdit, 
   return (
     <div className={styles.workflow}>
       {error && <p role="alert">{error}</p>}
-      {!details && !error && <p role="status">Loading application details...</p>}
+      {!details && !error && <PageState tone="loading" title="Loading application details..." />}
       {details && <>
         <h3>Interviews</h3>
         {details.interviews.map(interview => (

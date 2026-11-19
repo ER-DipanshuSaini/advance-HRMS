@@ -1,3 +1,4 @@
+import PageState from '../../components/common/PageState';
 import PageLayout from '../../components/common/PageLayout';
 import PageHeader from '../../components/common/PageHeader/PageHeader';
 import { useOutletContext } from 'react-router-dom';
@@ -104,7 +105,7 @@ export default function RoleManagement() {
 
         <Card title="Access Roles">
           <div className="flex flex-col gap-3">
-            {roles.map(role => {
+            {dataLoading && !data ? <PageState tone="loading" title="Loading roles..." /> : roles.map(role => {
               const isActive = activeRole?.id === role.id;
               const isLocked = role.name === 'SuperAdmin';
               return (

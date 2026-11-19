@@ -1,9 +1,10 @@
-import { AlertCircle, Inbox, Loader2, SearchX } from 'lucide-react';
+import Loader from '../Loader/Loader';
+import { AlertCircle, Inbox, SearchX } from 'lucide-react';
 import Button from '../Button/Button';
 import Card from '../Card/Card';
 import styles from './DataTable.module.css';
 
-const stateIcons = { empty: Inbox, filtered: SearchX, loading: Loader2, error: AlertCircle };
+const stateIcons = { empty: Inbox, filtered: SearchX, error: AlertCircle };
 
 function TableState({ columns, tone = 'empty', title, description, action, icon }) {
   const Icon = icon || stateIcons[tone];
@@ -11,7 +12,7 @@ function TableState({ columns, tone = 'empty', title, description, action, icon 
     <tr><td colSpan={columns} className={styles.stateCell}>
       <div className={styles.state} data-tone={tone}>
         <div className={styles.stateCopy} role={tone === 'error' ? 'alert' : 'status'}>
-          <span className={styles.stateIcon} aria-hidden="true"><Icon size={25} /></span>
+          <span className={styles.stateIcon} aria-hidden="true">{tone === 'loading' ? <Loader /> : <Icon size={25} />}</span>
           <h3>{title}</h3>
           {description && <p>{description}</p>}
         </div>
