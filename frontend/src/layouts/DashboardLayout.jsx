@@ -92,11 +92,11 @@ export default function DashboardLayout() {
               {user?.role_name && <span className={styles.userRole}>{user.role_name}</span>}
             </div>
           </div>
-          <button type="button" className={styles.logoutBtn} aria-label="Sign out" onClick={() => {
+          <button type="button" className={styles.logoutBtn} aria-label="Sign out" title="Sign out" onClick={() => {
             clearSession();
             navigate('/login', { replace: true });
           }}>
-            <LogOut size={17} aria-hidden="true" /><span className={styles.navLabel}>Sign out</span>
+            <LogOut size={17} aria-hidden="true" />
           </button>
         </div>
       </aside>

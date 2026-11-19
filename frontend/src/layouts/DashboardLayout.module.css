@@ -128,7 +128,10 @@
 }
 
 .sidebarFooter {
-  padding: 1rem 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .65rem .75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(0, 0, 0, 0.2);
 }
@@ -137,8 +140,8 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  margin-bottom: 1rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .userAvatar {
@@ -168,33 +171,36 @@
   color: white;
   font-size: 0.8125rem;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .userRole {
   font-size: 0.6875rem;
-  color: #64748b;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .logoutBtn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
   background: transparent;
   border: none;
-  color: #ef4444;
+  color: #94a3b8;
   cursor: pointer;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  transition: all 0.2s;
+  border-radius: .625rem;
 }
 
-.logoutBtn:hover {
-  background: rgba(239, 68, 68, 0.1);
+.logoutBtn:hover,
+.logoutBtn:focus-visible {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, .12);
 }
 
 .mainContent {
@@ -365,7 +371,8 @@
 @media (min-width: 769px) {
   .sidebarCollapsed :is(.brandName, .navLabel, .groupTitle, .userDetails) { display: none; }
   .sidebarCollapsed .sidebarHeader { padding-inline: .5rem; }
-  .sidebarCollapsed :is(.navItem, .logoutBtn, .userInfoBox) { justify-content: center; }
+  .sidebarCollapsed .navItem { justify-content: center; }
+  .sidebarCollapsed .sidebarFooter { flex-direction: column; padding: .5rem; }
 }
 @media (max-width: 768px) {
   .sidebar:not(.sidebarMobileOpen) { visibility: hidden; }
