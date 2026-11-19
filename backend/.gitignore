@@ -19,6 +19,15 @@ __pycache__/
 /media/
 /celery-logs/
 /celerybeat-schedule*
+*.log
+/static/
+
+# Test and lint output
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # OS
 .DS_Store
