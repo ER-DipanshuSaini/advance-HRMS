@@ -1,13 +1,14 @@
+import { useOutletContext } from 'react-router-dom';
+import AttendanceClock from '../../components/Attendance/AttendanceClock';
 import PageState from '../../components/common/PageState';
 import Select from '../../components/common/Select/Select';
 import Input from '../../components/common/Input/Input';
 import Card from '../../components/common/Card/Card';
 import Modal from '../../components/common/Modal/Modal';
 import Button from '../../components/common/Button/Button';
-import React, { useState, useEffect, useRef, Fragment } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import {
-  Clock, LogIn, LogOut, CheckCircle2, X,
-  XCircle, Timer, TrendingUp, BarChart2,
+  X,
   List as ListIcon, CalendarDays, Plus, Palmtree, Gift, FileText,
   Calendar, Flag, Crown, PartyPopper
 } from 'lucide-react';
@@ -38,25 +39,6 @@ const LEAVE_TYPES_MAP = {
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
-function formatElapsed(seconds) {
-  const sTotal = Math.floor(seconds);
-  const h = Math.floor(sTotal / 3600);
-  const m = Math.floor((sTotal % 3600) / 60);
-  const s = sTotal % 60;
-  return `${pad(h)}h ${pad(m)}m ${pad(s)}s`;
-}
-
-function parseTimeToSeconds(timeStr) {
-  if (!timeStr) return 0;
-  const parts = timeStr.split(':').map(Number);
-  return (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + Math.floor(parts[2] || 0);
-}
-
-function nowInSeconds() {
-  const now = new Date();
-  return now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-}
-
 function formatDuration(decimalHours) {
   if (!decimalHours) return null;
   const hours = Math.floor(decimalHours);
@@ -79,19 +61,17 @@ function formatDurationLong(decimalHours) {
  * MAIN COMPONENT: MyCalendar
  */
 export default function MyCalendar() {
-  const sessionUser = JSON.parse(localStorage.getItem('hireflow_user') || '{}');
+  const sessionUser = useOutletContext();
   const userPermsList = Array.isArray(sessionUser?.permissions) ? sessionUser.permissions : 
                        (Array.isArray(sessionUser?.role?.permissions) ? sessionUser.role.permissions.map(p => p.code || p) : []);
-  const canApplyLeave = userPermsList.includes('leaves:apply_own') || userPermsList.includes('leaves:add_all') || sessionUser.is_superuser;
+  const canApplyLeave = userPermsList.includes('leaves:apply_own') || userPermsList.includes('leaves:add_all') || sessionUser?.is_superuser;
 
-  const { loading: todayLoading, request: fetchToday } = useApi();
   const { loading: balanceLoading, error: balanceError, request: fetchBalance } = useApi();
   const { loading: actionLoading, request: doAction } = useApi();
   const { loading: histLoading, request: fetchHistory } = useApi();
   const { loading: holidayLoading, request: fetchHolidays } = useApi();
   const { loading: sumLoading, request: fetchSummary } = useApi();
 
-  const [todayRecord, setTodayRecord] = useState(null);
   const [history, setHistory] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [upcomingHolidays, setUpcomingHolidays] = useState([]);
@@ -99,8 +79,6 @@ export default function MyCalendar() {
   const [leaveBalance, setLeaveBalance] = useState(null);
   const [summary, setSummary] = useState(null);
   const [toast, setToast] = useState(null);
-  const [elapsed, setElapsed] = useState(0);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [viewMode, setViewMode] = useState('calendar');
 
   // Drawers
@@ -115,28 +93,6 @@ export default function MyCalendar() {
   const now = new Date();
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1);
   const [viewYear, setViewYear] = useState(now.getFullYear());
-
-  const timerRef = useRef(null);
-
-  // Live clock
-  useEffect(() => {
-    const id = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Elapsed timer
-  useEffect(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (todayRecord?.check_in && !todayRecord?.check_out) {
-      const checkInSec = parseTimeToSeconds(todayRecord.check_in);
-      timerRef.current = setInterval(() => { setElapsed(nowInSeconds() - checkInSec); }, 1000);
-    } else if (todayRecord?.check_in && todayRecord?.check_out) {
-      setElapsed(parseTimeToSeconds(todayRecord.check_out) - parseTimeToSeconds(todayRecord.check_in));
-    } else { setElapsed(0); }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [todayRecord]);
-
-  const loadToday = async () => { try { setTodayRecord(await fetchToday('/attendance/records/today/')); } catch { } };
 
   const loadHistory = async (start, end) => {
     try {
@@ -169,9 +125,7 @@ export default function MyCalendar() {
     try { setSummary(await fetchSummary(`/attendance/records/summary/?month=${m}&year=${y}`)); } catch { }
   };
 
-  useEffect(() => { loadToday(); }, []);
-
-  useEffect(() => {
+  const getVisibleRange = () => {
     const fDay = new Date(viewYear, viewMonth - 1, 1).getDay();
     const startObj = new Date(viewYear, viewMonth - 1, 1 - fDay);
     const endObj = new Date(viewYear, viewMonth - 1, 42 - fDay);
@@ -180,29 +134,16 @@ export default function MyCalendar() {
     const sStr = `${startObj.getFullYear()}-${pad(startObj.getMonth() + 1)}-${pad(startObj.getDate())}`;
     const eStr = `${endObj.getFullYear()}-${pad(endObj.getMonth() + 1)}-${pad(endObj.getDate())}`;
 
-    loadHistory(sStr, eStr);
-    loadHolidays(sStr, eStr);
+    return [sStr, eStr];
+  };
+
+  useEffect(() => {
+    const range = getVisibleRange();
+    loadHistory(...range);
+    loadHolidays(...range);
     loadLeaves();
     loadSummary(viewMonth, viewYear);
   }, [viewMonth, viewYear]);
-
-  const handleCheckIn = async () => {
-    try {
-      const data = await doAction('/attendance/records/check-in/', { method: 'POST', body: JSON.stringify({}) });
-      setTodayRecord(data);
-      setToast({ message: 'Checked in successfully!', type: 'success' });
-      loadHistory(viewMonth, viewYear); loadSummary(viewMonth, viewYear);
-    } catch (e) { setToast({ message: e.message || 'Check-in failed.', type: 'error' }); }
-  };
-
-  const handleCheckOut = async () => {
-    try {
-      const data = await doAction('/attendance/records/check-out/', { method: 'POST', body: JSON.stringify({}) });
-      setTodayRecord(data);
-      setToast({ message: 'Checked out successfully!', type: 'success' });
-      loadHistory(viewMonth, viewYear); loadSummary(viewMonth, viewYear);
-    } catch (e) { setToast({ message: e.message || 'Check-out failed.', type: 'error' }); }
-  };
 
   const changeMonth = (offset) => {
     let m = viewMonth + offset, y = viewYear;
@@ -217,10 +158,6 @@ export default function MyCalendar() {
 
   const monthName = new Date(viewYear, viewMonth - 1).toLocaleString('default', { month: 'long' });
   const isThisMonth = viewMonth === now.getMonth() + 1 && viewYear === now.getFullYear();
-  const checkedIn = !!todayRecord?.check_in;
-  const checkedOut = !!todayRecord?.check_out;
-  const liveStatus = !checkedIn ? 'NOT_IN' : !checkedOut ? 'WORKING' : 'DONE';
-  const displayName = sessionUser.first_name || sessionUser.name || 'User';
 
   const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
   const firstDay = new Date(viewYear, viewMonth - 1, 1).getDay();
@@ -436,11 +373,15 @@ export default function MyCalendar() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      style={{ display: 'contents' }}
+      className="page-stack"
     >
 
 
       {/* ── MAIN ────────────────────────────────────────── */}
+      <AttendanceClock user={sessionUser} onRecorded={() => {
+        loadHistory(...getVisibleRange());
+        loadSummary(viewMonth, viewYear);
+      }} />
       <div className={styles.mainLayout}>
         <Card variant="calendar" noPadding>
           <CalendarHeader

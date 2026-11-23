@@ -55,7 +55,9 @@ class AttendanceViewSet(viewsets.ReadOnlyModelViewSet):
         
         if target_user_id and 'attendance:view_all' in perms:
             q_user_id = target_user_id
-        elif 'attendance:view_own' in perms:
+        elif 'attendance:view_own' in perms or (
+            not target_user_id and 'attendance:mark_own' in perms
+        ):
             q_user_id = user.id
         else:
             return Response(None, status=status.HTTP_403_FORBIDDEN)

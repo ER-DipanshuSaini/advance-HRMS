@@ -1,0 +1,12 @@
+.row, .times {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.row { justify-content: space-between; }
+.times { column-gap: var(--space-xl); margin: 0; }
+.times dt { color: var(--text-secondary); font-size: .75rem; }
+.times dd { margin: .2rem 0 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+.error { color: var(--danger); margin: var(--space-sm) 0 0; }

@@ -1,3 +1,4 @@
+import AttendanceClock from '../../components/Attendance/AttendanceClock';
 import { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { ArrowRight, Briefcase, Building2, CalendarDays, RefreshCw, Users } from 'lucide-react';
@@ -140,6 +141,7 @@ export default function DashboardOverview() {
         actions={<Button variant="outline" icon={<RefreshCw size={16} />} loading={isRefreshing}
           onClick={() => setRefresh(value => value + 1)}>Refresh dashboard</Button>} />
 
+      <AttendanceClock user={user} onRecorded={() => setRefresh(value => value + 1)} />
       <MetricStrip metrics={metrics} />
       {directoryError && <PageState tone="error" title="Some overview counts could not be loaded">{directoryError}</PageState>}
 
